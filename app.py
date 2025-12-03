@@ -1200,11 +1200,10 @@ safety_settings = {
 }
 
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
-    generation_config={"temperature": 0.0},
-    # Qui uniamo le istruzioni e il database affinché l'AI veda tutto
-    system_instruction=system_instruction + "\n" + database_attivita,
-    safety_settings=safety_settings,
+  model_name="gemini-3-pro-preview",
+  generation_config=generation_config,
+  system_instruction=SYSTEM_PROMPT,
+  safety_settings=safety_settings, # <--- Questa è la novità importante!
 )
 
 # INTERFACCIA
@@ -1250,6 +1249,7 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
                 
             except Exception as e:
                 st.error(f"Errore: {e}")
+
 
 
 
