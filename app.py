@@ -239,20 +239,12 @@ if "@" not in user_email or "." not in user_email:
 st.warning("Per favore, inserisci un indirizzo email valido.")
 else:
 # Chiamiamo la funzione di invio con la cronologia salvata
-success = send_chat_via_email(user_email, st.session_state.messages) 
-                
+success = send_chat_via_email(user_email, st.session_state.messages)
 if success:
 st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarai ricontattato prestissimo.")
-                    
 # Feedback finale di ringraziamento (MODIFICATO QUI!)
 st.markdown("---")
 # Ho rimosso il "###" per rendere il testo più piccolo
 st.info("👉 Grazie di averci scritto! Verrai ricontattato a breve dal nostro team commerciale.") # Testo più piccolo
-                    
 elif submitted and not user_email:
 st.warning("Inserisci l'email per procedere.")
-
-
-
-
-
