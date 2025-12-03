@@ -47,7 +47,7 @@ else:
     st.error("Manca la API Key nei Secrets!")
     st.stop()
 
-# --- FUNZIONE DI INVIO EMAIL ---
+# --- FUNZIONE DI INVIO EMAIL (STRUTTURA CORRETTA) ---
 def send_chat_via_email(recipient_email, chat_history):
     # Dati presi da st.secrets
     try:
@@ -56,26 +56,24 @@ def send_chat_via_email(recipient_email, chat_history):
         smtp_server = st.secrets["smtp"]["server"]
         smtp_port = st.secrets["smtp"]["port"]
     except KeyError:
-        st.error("Errore: Credenziali SMTP mancanti nel file secrets.toml.")
-        return False
+        st.error("Errore: Credenziali SMTP (sender_email, server, etc.) mancanti nel file secrets.toml.")
+        return False # <-- La funzione termina qui in caso di errore
 
     # Definiamo la lista dei destinatari finali
-    # Al destinatario principale (cliente) aggiungiamo l'email aziendale in CC
-    destinatari = [recipient_email, EMAIL_COMMERCIALE] # <-- AGGIUNTA QUI
+    destinatari = [recipient_email, EMAIL_COMMERCIALE]
     
     try:
-        # Crea il corpo dell'email
+        # Crea il corpo e configura l'email (msg['To'] e msg['Cc'] rimangono uguali)
         body = "Ecco la cronologia della conversazione con Timmy AI:\n\n"
         for message in chat_history:
             role = "UTENTE" if message["role"] == "user" else "TIMMY AI"
             content = message['content'].replace('**', '').replace('###', '').replace('\n', '\n')
             body += f"--- {role} ---\n{content}\n\n"
 
-        # Configura l'email
         msg = MIMEMultipart()
         msg['From'] = sender_email
-        msg['To'] = recipient_email  # Il cliente è il destinatario principale
-        msg['Cc'] = EMAIL_COMMERCIALE # L'azienda riceve la copia
+        msg['To'] = recipient_email
+        msg['Cc'] = EMAIL_COMMERCIALE
         msg['Subject'] = f"Consulenza Timmy AI per {recipient_email} - TeamBuilding.it"
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
@@ -83,37 +81,16 @@ def send_chat_via_email(recipient_email, chat_history):
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
             server.login(sender_email, sender_password)
-            # sendmail accetta la lista di tutti i destinatari
             server.sendmail(sender_email, destinatari, msg.as_string()) 
-
-        # ... [codice precedente nel form] ...
-
-        if submitted and user_email:
-            if "@" not in user_email or "." not in user_email:
-                st.warning("Per favore, inserisci un indirizzo email valido.")
-            else:
-                # Chiamiamo la funzione di invio con la cronologia salvata
-                success = send_chat_via_email(user_email, st.session_state.messages)
-                
-                if success:
-                    st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarete ricontattati entro due ore.")
-                    
-                    # --- NUOVO FEEDBACK FINALE ---
-                    st.markdown("---")
-                    st.info("### Grazie di averci scritto! Verrai ricontattato a breve dal nostro team commerciale.")
-                    # -----------------------------
-
-                else:
-                    st.error("Si è verificato un errore critico durante l'invio. Controlla i log di Streamlit e le credenziali SMTP.")
-        elif submitted and not user_email:
-            # ... [codice successivo nel form] ...
         
-        return True
+        return True # <-- La funzione termina qui in caso di successo
+
     except Exception as e:
+        # Se l'invio fallisce (es. porta sbagliata o password errata)
         st.error(f"Errore di invio SMTP: {e}. Controlla la porta e la password.")
-        return False
-        
-        # --- FINE FUNZIONE EMAIL ---
+        return False # <-- La funzione termina qui in caso di errore SMTP
+
+# --- FINE FUNZIONE EMAIL ---
 
 # --- 3. ISTRUZIONI DI SISTEMA ---
 # Usiamo istruzioni chiare per guidare il modello senza bloccarlo
@@ -261,6 +238,7 @@ if len(st.session_state.messages) >= 2:
                     st.error("Si è verificato un errore critico durante l'invio. Controlla i log di Streamlit e le credenziali SMTP.")
         elif submitted and not user_email:
             st.warning("Inserisci l'email per procedere.")
+
 
 
 
