@@ -2,37 +2,41 @@ import csv
 import json
 import os
 
-def carica_database_da_csv():
-    # Nome del file che hai caricato su GitHub
+def carica_database():
+    # Il nome esatto del tuo file su GitHub
     nome_file = 'MasterTimmy.csv'
     
     lista_prodotti = []
     
-    # Controlliamo se il file esiste
+    # 1. Controllo se il file esiste (per evitare crash brutti)
     if not os.path.exists(nome_file):
-        return "ERRORE: Il file CSV non è stato trovato. Caricalo su GitHub con il nome 'MasterTimmy.csv'."
+        messaggio_errore = (
+            f"ATTENZIONE: Il file '{nome_file}' non è stato trovato nella cartella principale. "
+            "Caricalo su GitHub accanto ad app.py."
+        )
+        return messaggio_errore
 
     try:
+        # 2. Apertura e lettura del CSV
         with open(nome_file, mode='r', encoding='utf-8') as file:
-            # DictReader converte automaticamente ogni riga in un dizionario usando le intestazioni
+            # DictReader usa la prima riga (intestazioni) come chiavi
+            # Assicurati che il tuo CSV abbia le intestazioni: nome, format, logistica, ecc.
             reader = csv.DictReader(file)
+            
             for row in reader:
-                # Pulizia: convertiamo True/False testuali in booleani reali se necessario
-                # (Opzionale, ma aiuta l'AI)
-                if 'social_activity' in row:
-                    if row['social_activity'].lower() in ['sì', 'si', 'true', 'yes', 'sino']:
-                        row['social_activity'] = True
-                    else:
-                        row['social_activity'] = False
-                
-                lista_prodotti.append(row)
+                # Pulizia opzionale: rimuove righe vuote se ce ne sono
+                if row.get('nome'): 
+                    lista_prodotti.append(row)
         
-        # Convertiamo la lista in una stringa JSON formattata per l'AI
+        # 3. Conversione in testo JSON per l'AI
+        # ensure_ascii=False serve per mantenere accenti e caratteri speciali italiani
         database_stringa = json.dumps(lista_prodotti, indent=2, ensure_ascii=False)
         return database_stringa
 
     except Exception as e:
-        return f"ERRORE nella lettura del CSV: {e}"
+        return f"ERRORE CRITICO nella lettura di {nome_file}: {e}"
 
-# Questa è la variabile che app.py importerà
-database_attivita = carica_database_da_csv()
+# --- ESECUZIONE ---
+# Quando app.py fa "from format import database_attivita",
+# questa funzione parte in automatico e carica i dati aggiornati.
+database_attivita = carica_database()
