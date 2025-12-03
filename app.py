@@ -25,7 +25,7 @@ Il tuo obiettivo è aiutare i visitatori a trovare l'attività perfetta e invogl
 3. **LINK:** Su richiesta fornisci il link al sito web 
 
 ### FLUSSO DI CONVERSAZIONE
-1. **ACCOGLIENZA:** Sii breve, empatico e professionale. Chiedi che tipo di evento stanno organizzando (numero persone, obiettivo, periodo).
+1. **ACCOGLIENZA:** Sii breve, empatico e professionale. Chiedi come puoi aiutare, che tipo di evento stanno organizzando, se hanno già delle idee in mente. In seconda battuta chiedi numero persone, obiettivo, periodo.
 2. **CONSULENZA:** In base alle risposte, suggerisci **4 FORMAT** che siano perfetti per loro:
     * 1 Best Seller
     * 1 Novità
@@ -1250,4 +1250,5 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
                 
             except Exception as e:
                 st.error(f"Errore: {e}")
+
 
