@@ -232,21 +232,24 @@ if len(st.session_state.messages) >= 2:
         user_email = st.text_input("La tua email:", key="user_email_input")
         
         submitted = st.form_submit_button("Invia cronologia e richiedi preventivo")
-if submitted and user_email:
-    # Validazione base dell'email
-    if "@" not in user_email or "." not in user_email:
-        st.warning("Per favore, inserisci un indirizzo email valido.")
-    else:
-        # Chiamiamo la funzione di invio con la cronologia salvata
-        success = send_chat_via_email(user_email, st.session_state.messages)
+        
+        # INIZIO LOGICA CORRETTA: La variabile 'submitted' è definita qui sopra
+        if submitted and user_email:
+            # Validazione base dell'email
+            if "@" not in user_email or "." not in user_email:
+                st.warning("Per favore, inserisci un indirizzo email valido.")
+            else:
+                # Chiamiamo la funzione di invio con la cronologia salvata
+                success = send_chat_via_email(user_email, st.session_state.messages)
 
-        if success:
-            st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarai ricontattato prestissimo.")
+                if success:
+                    st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarai ricontattato prestissimo.")
+                    
+                    # Feedback finale di ringraziamento
+                    st.markdown("---")
+                    # Rimosso il "###" per rendere il testo più piccolo
+                    st.info("👉 Grazie di averci scritto! Verrai ricontattato a breve dal nostro team commerciale.")
             
-            # Feedback finale di ringraziamento
-            st.markdown("---")
-            # Ho rimosso il "###" per rendere il testo più piccolo
-            st.info("👉 Grazie di averci scritto! Verrai ricontattato a breve dal nostro team commerciale.")
-            
-elif submitted and not user_email:
-    st.warning("Inserisci l'email per procedere.")
+        elif submitted and not user_email:
+            st.warning("Inserisci l'email per procedere.")
+        # FINE LOGICA CORRETTA
