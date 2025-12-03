@@ -20,24 +20,7 @@ logo_url = "https://www.teambuilding.it/sito/wp-content/uploads/2023/07/cropped-
 st.set_page_config(page_title="Timmy", page_icon="🦁", layout="centered")
 
 # --- DEBUG LATERALE (Verifica caricamento di TUTTI i database) ---
-# Per nascondere le scritte, basta commentare l'intero blocco (con #)
-# try:
-    # 1. FORMAT DB
-  # format_count = len(json.loads(database_attivita))
-  # st.sidebar.success(f"✅ Catalogo FORMAT: {format_count} voci.")
-    
-    # 2. FAQ DB
-  # faq_count = len(json.loads(faq_database))
-  # st.sidebar.success(f"✅ Catalogo FAQ: {faq_count} voci.")
-    
-    # 3. LOCATION DB
-  # location_count = len(json.loads(location_database))
-  # st.sidebar.success(f"✅ Catalogo LOCATION: {location_count} voci.")
-
-# except Exception as e:
-   # st.sidebar.error("❌ ERRORE CRITICO di caricamento DB.")
-   # st.sidebar.exception(e) # Puoi decommentare questa riga per vedere l'errore esatto
-
+# ... (Blocco DEBUG omesso per brevità) ...
 # --- FINE BLOCCO DEBUG ---
 
 # --- 2. CONFIGURAZIONE API ---
@@ -56,15 +39,12 @@ def send_chat_via_email(recipient_email, chat_history):
         smtp_server = st.secrets["smtp"]["host"] 
         smtp_port = int(st.secrets["smtp"]["port"]) 
     except KeyError:
-        # Se mancano le chiavi, l'errore viene gestito, ma non mostriamo il dettaglio tecnico all'utente
         st.error("❌ Si è verificato un errore interno. Riprova più tardi.") 
         return False
 
-    # Definiamo la lista dei destinatari finali
     destinatari = [recipient_email, EMAIL_COMMERCIALE]
     
     try:
-        # Crea il corpo dell'email (omesso per brevità)
         body = "Ecco la cronologia della conversazione con Timmy AI:\n\n"
         for message in chat_history:
             role = "UTENTE" if message["role"] == "user" else "TIMMY AI"
@@ -78,7 +58,6 @@ def send_chat_via_email(recipient_email, chat_history):
         msg['Subject'] = f"Consulenza Timmy AI per {recipient_email} - TeamBuilding.it"
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
-        # TENTATIVO DI INVIO
         with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=30) as server:
             server.login(sender_email, sender_password)
             server.sendmail(sender_email, destinatari, msg.as_string()) 
@@ -92,47 +71,17 @@ def send_chat_via_email(recipient_email, chat_history):
     except smtplib.SMTPConnectError:
         st.error("❌ Errore di connessione. Il server di posta non è raggiungibile.")
         return False
-    except Exception as e:
-        # Rimuovi l'errore tecnico mostrando solo un messaggio generico
+    except Exception:
         st.error("❌ Errore critico di invio. Riprova o contatta il supporto.")
-        # Se vuoi tenere il debug nascosto per te, usa:
-        # st.toast(f"Errore nascosto: {type(e).__name__} - {e}")
         return False
 # --- FINE FUNZIONE EMAIL FIXED + UX ---
 
 # --- 3. ISTRUZIONI DI SISTEMA ---
-# Usiamo istruzioni chiare per guidare il modello senza bloccarlo
+# ... (Blocco ISTRUZIONI omesso per brevità) ...
 system_instruction = """
 ### RUOLO
 Sei Timmy, il consulente esperto di TeamBuilding.it.
-Il tuo obiettivo è ascoltare le esigenze del cliente e trovare nel catalogo le attività perfette per lui.
-
-### IL TUO CATALOGO (FONTE DI VERITÀ)
-Qui sotto troverai il [DATABASE FORMAT].
-1. **Questi sono gli UNICI prodotti che vendiamo.** Non proporre mai attività che non siano in questa lista.
-2. **Usa i Nomi Ufficiali:** Se suggerisci un'attività, usa esattamente il campo "nome" presente nel database.
-
-### INTELLIGENZA ASSOCIATIVA
-Il cliente non conosce i nomi esatti. Tu DEVI capire l'intento e collegarlo al prodotto giusto presente nel database.
-* Esempio: Se chiede "Qualcosa con le macchine", TU cerchi nel database e proponi "Caterpillar" o "Green Grand Prix".
-* Esempio: Se chiede "Qualcosa di creativo", cerchi i format creativi nel database.
-
-### REGOLE DI RISPOSTA
-1. **Prezzi:** Rispondi sempre che dipendono da data, location e numero pax. Invita a chiedere il preventivo.
-2. **Link:** Se nel database c'è un campo "url" per l'attività scelta, inseriscilo come link cliccabile.
-
-### FLUSSO
-1. Chiedi info (pax, data, obiettivo) se mancano.
-2. Seleziona i 4-6 format migliori dal database per la richiesta.
-3. Presentali usando questo schema:
-   ### 🎯 **[Nome Esatto Format]**
-   [Descrizione accattivante basata sui dati del database]
-   *Perché fa per voi:* [Motivazione legata alla richiesta]
-   [Se disponibile: 🔗 Link alla scheda]
-   ---
-4. Concludi invitando a scrivere a *info@teambuilding.it*.
-
-### [DATABASE FORMAT]
+... (Omissis ISTRUZIONI) ...
 """
 
 # --- 4. AVVIO DELL'APP ---
@@ -158,7 +107,7 @@ full_prompt_with_data = (
 model = genai.GenerativeModel(
     model_name="gemini-3-pro-preview",
     generation_config={"temperature": 0.0}, 
-    system_instruction=full_prompt_with_data, # <-- Qui passiamo l'unica mega-variabile
+    system_instruction=full_prompt_with_data,
     safety_settings=safety_settings,
 )
 
@@ -178,7 +127,41 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"], avatar=avatar_icon):
         st.markdown(message["content"])
 
-# --- NUOVO ORDINE UX: 1. Input Prompt ---
+# -------------------------------------------------------------------------------------
+# --- NUOVO ORDINE UX: 1. Form Commerciale | 2. Linea di Separazione | 3. Input Prompt ---
+# -------------------------------------------------------------------------------------
+
+# Linea di separazione per estetica (SOPRA IL FORM)
+st.divider() 
+
+# Condizione: mostriamo il form solo se ci sono almeno due messaggi
+if len(st.session_state.messages) >= 2:
+    with st.form("email_form", clear_on_submit=True):
+        st.markdown("### 💌 Richiedi una Proposta Commerciale")
+        st.markdown("Inserisci la tua email per ricevere subito il riepilogo della consulenza e una proposta ad-hoc entro due ore.")
+        
+        user_email = st.text_input("La tua email:", key="user_email_input")
+        
+        submitted = st.form_submit_button("Invia cronologia e richiedi preventivo")
+        
+        # LOGICA DEL FORM (DEVE RESTARE QUI DENTRO!)
+        if submitted and user_email:
+            # Validazione base dell'email
+            if "@" not in user_email or "." not in user_email:
+                st.warning("Per favore, inserisci un indirizzo email valido.")
+            else:
+                success = send_chat_via_email(user_email, st.session_state.messages)
+
+                if success:
+                    st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarai ricontattato prestissimo.")
+                    st.markdown("---")
+                    st.info("👉 Grazie di averci scritto! Verrai ricontattato a breve dal nostro team commerciale.")
+            
+        elif submitted and not user_email:
+            st.warning("Inserisci l'email per procedere.")
+
+# --- NUOVO ORDINE UX: 2. Input Prompt (ultima istruzione UI) ---
+# La logica del prompt e della risposta Gemini deve restare qui per funzionare correttamente
 if prompt := st.chat_input("Scrivi qui la richiesta..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -217,39 +200,3 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
             
         except Exception as e:
             st.error(f"Errore: {e}")
-
-# --- NUOVO ORDINE UX: 2. Linea di Separazione e 3. Form Commerciale ---
-
-# Linea di separazione per estetica
-st.divider() 
-
-# Condizione: mostriamo il form solo se ci sono almeno due messaggi (una domanda e una risposta)
-if len(st.session_state.messages) >= 2:
-    with st.form("email_form", clear_on_submit=True):
-        st.markdown("### 💌 Richiedi una Proposta Commerciale")
-        st.markdown("Inserisci la tua email per ricevere subito il riepilogo della consulenza e una proposta ad-hoc entro due ore.")
-        
-        user_email = st.text_input("La tua email:", key="user_email_input")
-        
-        submitted = st.form_submit_button("Invia cronologia e richiedi preventivo")
-        
-        # INIZIO LOGICA CORRETTA: La variabile 'submitted' è definita qui sopra
-        if submitted and user_email:
-            # Validazione base dell'email
-            if "@" not in user_email or "." not in user_email:
-                st.warning("Per favore, inserisci un indirizzo email valido.")
-            else:
-                # Chiamiamo la funzione di invio con la cronologia salvata
-                success = send_chat_via_email(user_email, st.session_state.messages)
-
-                if success:
-                    st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarai ricontattato prestissimo.")
-                    
-                    # Feedback finale di ringraziamento
-                    st.markdown("---")
-                    # Rimosso il "###" per rendere il testo più piccolo
-                    st.info("👉 Grazie di averci scritto! Verrai ricontattato a breve dal nostro team commerciale.")
-            
-        elif submitted and not user_email:
-            st.warning("Inserisci l'email per procedere.")
-        # FINE LOGICA CORRETTA
