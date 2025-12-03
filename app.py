@@ -1200,7 +1200,7 @@ safety_settings = {
 }
 
 model = genai.GenerativeModel(
-  model_name="gemini-3-pro-preview",
+    model_name="gemini-3-pro-preview",
     # Metti le impostazioni direttamente qui tra parentesi graffe
     generation_config={"temperature": 0.0}, 
     system_instruction=system_instruction + "\n" + database_attivita,
@@ -1232,8 +1232,7 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
         st.session_state.messages = []
         st.rerun()
 
- # ... codice precedente ...
-
+    # RISPOSTA DEL MODELLO
     with st.chat_message("model"):
         # Togliamo lo spinner classico perché vedremo il testo apparire
         try:
@@ -1244,6 +1243,7 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
                 else:
                     history_gemini.append({"role": "model", "parts": [m["content"]]})
             
+            # Qui escludiamo l'ultimo messaggio perché lo inviamo con send_message
             chat = model.start_chat(history=history_gemini[:-1])
             
             # 1. Attiviamo lo stream=True qui
