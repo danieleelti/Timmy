@@ -4,7 +4,7 @@ from email.mime.multipart import MIMEMultipart
 import streamlit as st
 import google.generativeai as genai
 import json
-import time # Importiamo la libreria time
+import time 
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 # --- IMPORT DATABASE ---
@@ -48,7 +48,7 @@ else:
     st.error("Manca la API Key nei Secrets!")
     st.stop()
 
-# --- FUNZIONE DI INVIO EMAIL (FIXED + UX) ---
+# --- FUNZIONE DI INVIO EMAIL (NESSUN MESSAGGIO DI DEBUG) ---
 
 def send_chat_via_email(recipient_email, chat_history):
     try:
@@ -57,7 +57,7 @@ def send_chat_via_email(recipient_email, chat_history):
         smtp_server = st.secrets["smtp"]["host"] 
         smtp_port = int(st.secrets["smtp"]["port"]) 
     except KeyError:
-        st.error("❌ Si è verificato un errore interno. Riprova più tardi.") 
+        # L'errore non viene stampato, la funzione restituisce False
         return False
 
     # Definiamo la lista dei destinatari finali
@@ -83,20 +83,16 @@ def send_chat_via_email(recipient_email, chat_history):
             server.login(sender_email, sender_password)
             server.sendmail(sender_email, destinatari, msg.as_string()) 
             
-        st.success(f"✅ Email di consulenza inviata a {recipient_email} e a {EMAIL_COMMERCIALE}!")
+        # *** RIMOSSA st.success QUI ***
         return True
 
     except smtplib.SMTPAuthenticationError:
-        st.error("❌ Non siamo riusciti ad autenticarci. Contatta il supporto tecnico.")
         return False
     except smtplib.SMTPConnectError:
-        st.error("❌ Errore di connessione. Il server di posta non è raggiungibile.")
         return False
     except Exception:
-        # Rimuovi l'errore tecnico mostrando solo un messaggio generico
-        st.error("❌ Errore critico di invio. Riprova o contatta il supporto.")
         return False
-# --- FINE FUNZIONE EMAIL FIXED + UX ---
+# --- FINE FUNZIONE EMAIL (NESSUN MESSAGGIO DI DEBUG) ---
 
 # --- 3. ISTRUZIONI DI SISTEMA ---
 # Usiamo istruzioni chiare per guidare il modello senza bloccarlo
@@ -181,7 +177,6 @@ for message in st.session_state.messages:
 # --- 1. Input Prompt (Attiva la Logica di Rerunning) ---
 if prompt := st.chat_input("Scrivi qui la richiesta..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    # La logica di generazione della risposta deve essere fuori per funzionare correttamente
     st.rerun() 
 
 # --- 2. LOGICA DI RISPOSTA GEMINI (CON SPINNER CIRCOLARE) ---
@@ -195,7 +190,7 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         st.session_state.messages = []
         st.rerun()
 
-    # ⭐ AGGIUNGIAMO LO SPINNER CIRCOLARE QUI (st.spinner)
+    # ⭐ SPINNER CIRCOLARE (st.spinner)
     with st.spinner("🧠 Timmy AI sta elaborando la tua richiesta..."):
         
         # RISPOSTA DEL MODELLO
@@ -257,8 +252,9 @@ if len(st.session_state.messages) >= 2:
             else:
                 success = send_chat_via_email(user_email, st.session_state.messages)
 
+                # Mostra il ringraziamento finale (blu) SOLO se l'invio è andato a buon fine
                 if success:
-                    st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarai ricontattato prestissimo.")
+                    # *** RIMOSSA st.success qui, mantenendo solo il messaggio blu in fondo ***
                     st.markdown("---")
                     st.info("👉 Grazie di averci scritto! Verrai ricontattato a breve dal nostro team commerciale.")
             
