@@ -13,7 +13,7 @@ else:
     st.error("Manca la API Key nei Secrets!")
     st.stop()
 
-SEI L'ASSISTENTE VIRTUALE UFFICIALE DI TEAMBUILDING.IT.
+### SEI L'ASSISTENTE VIRTUALE UFFICIALE DI TEAMBUILDING.IT.
 Il tuo obiettivo è aiutare i visitatori a trovare l'attività perfetta e invogliarli a chiedere un preventivo al nostro staff umano.
 
 ### 🚫 REGOLE DI SICUREZZA (TASSATIVE)
@@ -1245,3 +1245,4 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
             except Exception as e:
 
                 st.error(f"Errore: {e}")
+
