@@ -48,7 +48,6 @@ else:
     st.stop()
 
 # --- FUNZIONE DI INVIO EMAIL ---
-# --- FUNZIONE DI INVIO EMAIL AGGIORNATA ---
 def send_chat_via_email(recipient_email, chat_history):
     # Dati presi da st.secrets
     try:
@@ -86,6 +85,28 @@ def send_chat_via_email(recipient_email, chat_history):
             server.login(sender_email, sender_password)
             # sendmail accetta la lista di tutti i destinatari
             server.sendmail(sender_email, destinatari, msg.as_string()) 
+
+        # ... [codice precedente nel form] ...
+
+        if submitted and user_email:
+            if "@" not in user_email or "." not in user_email:
+                st.warning("Per favore, inserisci un indirizzo email valido.")
+            else:
+                # Chiamiamo la funzione di invio con la cronologia salvata
+                success = send_chat_via_email(user_email, st.session_state.messages)
+                
+                if success:
+                    st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarete ricontattati entro due ore.")
+                    
+                    # --- NUOVO FEEDBACK FINALE ---
+                    st.markdown("---")
+                    st.info("### Grazie di averci scritto! Verrai ricontattato a breve dal nostro team commerciale.")
+                    # -----------------------------
+
+                else:
+                    st.error("Si è verificato un errore critico durante l'invio. Controlla i log di Streamlit e le credenziali SMTP.")
+        elif submitted and not user_email:
+            # ... [codice successivo nel form] ...
         
         return True
     except Exception as e:
@@ -240,6 +261,7 @@ if len(st.session_state.messages) >= 2:
                     st.error("Si è verificato un errore critico durante l'invio. Controlla i log di Streamlit e le credenziali SMTP.")
         elif submitted and not user_email:
             st.warning("Inserisci l'email per procedere.")
+
 
 
 
