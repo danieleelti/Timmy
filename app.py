@@ -177,49 +177,64 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # ----------------------------------------------------------------------
-# --- NUOVO ORDINE UX: 1. Form Commerciale | 2. Linea di Separazione ---
+# --- ZONA FISSA IN BASSO (Contiene Form e Input Chat) ---
 # ----------------------------------------------------------------------
 
-# Condizione: mostriamo il form solo se ci sono almeno due messaggi
-if len(st.session_state.messages) >= 2:
-    
-    # Linea di separazione per estetica
-    st.divider() 
+# Creiamo un contenitore che si posizionerà dopo la cronologia
+bottom_container = st.container()
 
-    # IL FORM DEVE CONTENERE TUTTA LA SUA LOGICA PER DEFINIRE LO SCOPE DI 'submitted'
-    with st.form("email_form", clear_on_submit=True):
-        st.markdown("### 💌 Richiedi una Proposta Commerciale")
-        st.markdown("Inserisci la tua email per ricevere subito il riepilogo della consulenza e una proposta ad-hoc entro due ore.")
+with bottom_container:
+    # Condizione: mostriamo il form solo se ci sono almeno due messaggi
+    if len(st.session_state.messages) >= 2:
         
-        user_email = st.text_input("La tua email:", key="user_email_input")
-        
-        submitted = st.form_submit_button("Invia cronologia e richiedi preventivo")
-        
-        # LOGICA CORRETTA: TUTTO IL CONTROLLO 'if submitted' è all'interno del form
-        if submitted and user_email:
-            # Validazione base dell'email
-            if "@" not in user_email or "." not in user_email:
-                st.warning("Per favore, inserisci un indirizzo email valido.")
-            else:
-                success = send_chat_via_email(user_email, st.session_state.messages)
+        # Linea di separazione per estetica
+        st.divider() 
 
-                if success:
-                    st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarai ricontattato prestissimo.")
-                    st.markdown("---")
-                    st.info("👉 Grazie di averci scritto! Verrai ricontattato a breve dal nostro team commerciale.")
+        # IL FORM DEVE CONTENERE TUTTA LA SUA LOGICA
+        with st.form("email_form", clear_on_submit=True):
+            st.markdown("### 💌 Richiedi una Proposta Commerciale")
+            st.markdown("Inserisci la tua email per ricevere subito il riepilogo della consulenza e una proposta ad-hoc entro due ore.")
             
-        elif submitted and not user_email:
-            st.warning("Inserisci l'email per procedere.")
+            user_email = st.text_input("La tua email:", key="user_email_input")
+            
+            submitted = st.form_submit_button("Invia cronologia e richiedi preventivo")
+            
+            # LOGICA CORRETTA: TUTTO IL CONTROLLO 'if submitted' è all'interno del form
+            if submitted and user_email:
+                # Validazione base dell'email
+                if "@" not in user_email or "." not in user_email:
+                    st.warning("Per favore, inserisci un indirizzo email valido.")
+                else:
+                    success = send_chat_via_email(user_email, st.session_state.messages)
 
-# --- NUOVO ORDINE UX: 3. Input Prompt (ultima istruzione UI) ---
-# La logica del prompt e della risposta Gemini deve restare qui per funzionare correttamente
-if prompt := st.chat_input("Scrivi qui la richiesta..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+                    if success:
+                        st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarai ricontattato prestissimo.")
+                        st.markdown("---")
+                        st.info("👉 Grazie di averci scritto! Verrai ricontattato a breve dal nostro team commerciale.")
+                
+            elif submitted and not user_email:
+                st.warning("Inserisci l'email per procedere.")
+
+    # --- INPUT PROMPT (DEVE ESSERE L'ULTIMO NEL CONTENITORE) ---
+    # Posizionando il st.chat_input all'interno di un contenitore che è l'ultimo elemento della pagina,
+    # Streamlit dovrebbe renderlo fisso in fondo.
+
+    if prompt := st.chat_input("Scrivi qui la richiesta..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        # La logica di generazione della risposta deve essere fuori dal contenitore/form per funzionare
+        st.rerun() 
+        # Usiamo st.rerun() per uscire dal blocco di generazione e far ricaricare lo stato (necessario in questa struttura)
+
+# ----------------------------------------------------------------------
+# --- LOGICA DI RISPOSTA GEMINI (DEVE ESSERE ESEGUITA DURANTE IL RERUN) ---
+# ----------------------------------------------------------------------
+
+# Controlliamo l'ultimo messaggio inviato per la logica di generazione
+if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+    current_prompt = st.session_state.messages[-1]["content"]
 
     # Reset
-    if prompt.lower().strip() in ["reset", "nuovo", "cancella", "stop"]:
+    if current_prompt.lower().strip() in ["reset", "nuovo", "cancella", "stop"]:
         st.session_state.messages = []
         st.rerun()
 
@@ -227,15 +242,13 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
     with st.chat_message("model", avatar=logo_url):
         try:
             history_gemini = []
-            for m in st.session_state.messages:
-                if m["role"] != "model": 
-                    history_gemini.append({"role": "user", "parts": [m["content"]]})
-                else:
-                    history_gemini.append({"role": "model", "parts": [m["content"]]})
+            # Tutta la cronologia tranne l'ultimo (il prompt corrente)
+            for m in st.session_state.messages[:-1]: 
+                history_gemini.append({"role": m["role"], "parts": [m["content"]]})
             
-            chat = model.start_chat(history=history_gemini[:-1])
+            chat = model.start_chat(history=history_gemini)
             
-            response = chat.send_message(prompt, stream=True)
+            response = chat.send_message(current_prompt, stream=True)
             
             full_response = ""
             message_placeholder = st.empty()
@@ -247,6 +260,7 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
             
             message_placeholder.markdown(full_response)
             
+            # Aggiungiamo la risposta completa solo alla fine
             st.session_state.messages.append({"role": "model", "content": full_response})
             
         except Exception as e:
