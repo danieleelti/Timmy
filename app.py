@@ -235,7 +235,7 @@ if len(st.session_state.messages) >= 2:
 
 if submitted and user_email:
     # Validazione base dell email
-            if "@" not in user_email or "." not in user_email:
+if "@" not in user_email or "." not in user_email:
                 st.warning("Per favore, inserisci un indirizzo email valido.")
             else:
                 # Chiamiamo la funzione di invio con la cronologia salvata
@@ -251,6 +251,7 @@ if submitted and user_email:
                     
         elif submitted and not user_email:
             st.warning("Inserisci l'email per procedere.")
+
 
 
 
