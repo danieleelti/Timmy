@@ -13,6 +13,8 @@ from faq import faq_database
 from location import location_database 
 
 # --- CONFIGURAZIONE ---
+# Indirizzo del team commerciale che riceverà la notifica
+EMAIL_COMMERCIALE = "info@teambuilding.it" 
 logo_url = "https://www.teambuilding.it/sito/wp-content/uploads/2023/07/cropped-favicon-32x32.png"
 
 st.set_page_config(page_title="Timmy", page_icon="🦁", layout="centered")
@@ -46,6 +48,7 @@ else:
     st.stop()
 
 # --- FUNZIONE DI INVIO EMAIL ---
+# --- FUNZIONE DI INVIO EMAIL AGGIORNATA ---
 def send_chat_via_email(recipient_email, chat_history):
     # Dati presi da st.secrets
     try:
@@ -54,9 +57,13 @@ def send_chat_via_email(recipient_email, chat_history):
         smtp_server = st.secrets["smtp"]["server"]
         smtp_port = st.secrets["smtp"]["port"]
     except KeyError:
-        st.error("Errore: Credenziali SMTP (sender_email, server, etc.) mancanti nel file secrets.toml. Non posso inviare l'email.")
+        st.error("Errore: Credenziali SMTP mancanti nel file secrets.toml.")
         return False
 
+    # Definiamo la lista dei destinatari finali
+    # Al destinatario principale (cliente) aggiungiamo l'email aziendale in CC
+    destinatari = [recipient_email, EMAIL_COMMERCIALE] # <-- AGGIUNTA QUI
+    
     try:
         # Crea il corpo dell'email
         body = "Ecco la cronologia della conversazione con Timmy AI:\n\n"
@@ -68,20 +75,21 @@ def send_chat_via_email(recipient_email, chat_history):
         # Configura l'email
         msg = MIMEMultipart()
         msg['From'] = sender_email
-        msg['To'] = recipient_email
+        msg['To'] = recipient_email  # Il cliente è il destinatario principale
+        msg['Cc'] = EMAIL_COMMERCIALE # L'azienda riceve la copia
         msg['Subject'] = f"Consulenza Timmy AI per {recipient_email} - TeamBuilding.it"
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
-        # Invia l'email usando le credenziali di mail.eventmedia.it
+        # Invia l'email alla lista completa
         with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls() # Abilita la sicurezza TLS/STARTTLS
+            server.starttls()
             server.login(sender_email, sender_password)
-            server.sendmail(sender_email, recipient_email, msg.as_string())
+            # sendmail accetta la lista di tutti i destinatari
+            server.sendmail(sender_email, destinatari, msg.as_string()) 
         
         return True
     except Exception as e:
-        # Se l'invio fallisce (es. porta sbagliata o password errata)
-        st.error(f"Errore di invio SMTP: {e}. Controlla la porta e la password in secrets.toml.")
+        st.error(f"Errore di invio SMTP: {e}. Controlla la porta e la password.")
         return False
         
         # --- FINE FUNZIONE EMAIL ---
@@ -232,5 +240,6 @@ if len(st.session_state.messages) >= 2:
                     st.error("Si è verificato un errore critico durante l'invio. Controlla i log di Streamlit e le credenziali SMTP.")
         elif submitted and not user_email:
             st.warning("Inserisci l'email per procedere.")
+
 
 
