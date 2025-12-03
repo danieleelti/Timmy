@@ -1,6 +1,11 @@
 location_database = """
 [
   {
+    "città": "Copertura Totale",
+    "tipologia": "Logistica Globale",
+    "note": "Lavoriamo in tutta Italia e anche all'estero. Hotel, location per eventi, agriturismi, i vostri uffici, non ci sono problemi: organizziamo le nostre attività dappertutto."
+  },
+  {
     "città": "Milano",
     "tipologia": "Sede Ufficiale",
     "note": "Disponibilità di spazi per eventi indoor di grandi dimensioni e partnership con hotel di lusso per format aziendali."
@@ -22,4 +27,3 @@ location_database = """
   }
 ]
 """
-# Nota: puoi espandere questa lista con tutte le città in cui siete operativi.
