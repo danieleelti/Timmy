@@ -3,41 +3,55 @@ import json
 import os
 
 def carica_database():
-    # Nome del file (assicurati che su GitHub sia caricato nella stessa cartella!)
     nome_file = 'MasterTimmy.csv'
-    
     lista_prodotti = []
     
-    # 1. Verifica esistenza file
     if not os.path.exists(nome_file):
-        # Fallback: prova a cercarlo tutto minuscolo se non lo trova
-        if os.path.exists(nome_file.lower()):
-            nome_file = nome_file.lower()
-        else:
-            return json.dumps([{"nome": "ERRORE", "descrizione": "File CSV non trovato su GitHub."}])
+        return json.dumps([{"nome": "ERRORE", "descrizione": "File CSV non trovato su GitHub."}])
 
-    try:
-        # 2. Lettura intelligente (Rileva automaticamente il separatore)
-        with open(nome_file, mode='r', encoding='utf-8', errors='replace') as file:
-            # Leggiamo la prima riga per capire se usa , o ;
-            prima_riga = file.readline()
-            file.seek(0) # Torniamo all'inizio
-            
-            separatore = ';' if ';' in prima_riga else ','
-            
-            reader = csv.DictReader(file, delimiter=separatore)
-            
-            for row in reader:
-                # Aggiungiamo solo se c'è almeno il nome del format
-                if row.get('nome') or row.get('Nome') or row.get('NOME'):
-                    # Normalizziamo le chiavi (tutto minuscolo) per sicurezza
-                    row_clean = {k.lower(): v for k, v in row.items() if k}
-                    lista_prodotti.append(row_clean)
-        
-        return json.dumps(lista_prodotti, indent=2, ensure_ascii=False)
+    # Definiamo gli encoding da provare
+    encoding_list = ['utf-8', 'latin-1', 'cp1252']
+    
+    for encoding in encoding_list:
+        try:
+            with open(nome_file, mode='r', encoding=encoding, errors='replace') as file:
+                # 1. Tenta di rilevare il separatore
+                prima_riga = file.readline()
+                file.seek(0)
+                separatore = ';' if ';' in prima_riga else ','
+                
+                reader = csv.DictReader(file, delimiter=separatore)
+                
+                for row in reader:
+                    if row.get('Nome Format') or row.get('Nome'): # Usiamo la chiave corretta
+                        row_clean = {}
+                        
+                        for k, v in row.items():
+                            if k:
+                                # 2. Pulizia e conversione chiave/valore
+                                key = k.strip().lower().replace(' ', '_')
+                                value = v.strip() if v else ""
+                                
+                                # 3. CORREZIONE VIRGOLA DECIMALE (Importante se non hai aggiornato il CSV!)
+                                if 'durata' in key or 'pax' in key or 'ranking' in key:
+                                    value = value.replace(',', '.') # Sostituisce la virgola decimale con il punto
+                                    
+                                row_clean[key] = value
+                                
+                        lista_prodotti.append(row_clean)
+                
+                # Se arriviamo qui, il file è stato letto
+                database_stringa = json.dumps(lista_prodotti, indent=2, ensure_ascii=False)
+                return database_stringa
 
-    except Exception as e:
-        return json.dumps([{"nome": "ERRORE LETTURA", "descrizione": str(e)}])
+        except UnicodeDecodeError:
+            continue
+        except Exception as e:
+            # Se fallisce per un errore di struttura, proviamo il prossimo encoding
+            continue
+
+    # Se fallisce tutto, restituisce un errore chiaro all'AI
+    return json.dumps([{"nome": "ERRORE FINALE", "descrizione": "Impossibile leggere il catalogo MasterTimmy. Controlla il formato CSV e la codifica."}])
 
 # ESECUZIONE
 database_attivita = carica_database()
