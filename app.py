@@ -4,6 +4,7 @@ from email.mime.multipart import MIMEMultipart
 import streamlit as st
 import google.generativeai as genai
 import json
+import time # Importiamo la libreria time
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 # --- IMPORT DATABASE ---
@@ -56,7 +57,6 @@ def send_chat_via_email(recipient_email, chat_history):
         smtp_server = st.secrets["smtp"]["host"] 
         smtp_port = int(st.secrets["smtp"]["port"]) 
     except KeyError:
-        # Se mancano le chiavi, l'errore viene gestito, ma non mostriamo il dettaglio tecnico all'utente
         st.error("❌ Si è verificato un errore interno. Riprova più tardi.") 
         return False
 
@@ -176,19 +176,70 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"], avatar=avatar_icon):
         st.markdown(message["content"])
 
+# --- ZONA DI INPUT E FORM (Posizionamento Standard) ---
+
+# --- 1. Input Prompt (Attiva la Logica di Rerunning) ---
+if prompt := st.chat_input("Scrivi qui la richiesta..."):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    # La logica di generazione della risposta deve essere fuori per funzionare correttamente
+    st.rerun() 
+
+# --- 2. LOGICA DI RISPOSTA GEMINI (CON SPINNER CIRCOLARE) ---
+
+# Controlliamo l'ultimo messaggio inviato per la logica di generazione
+if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+    current_prompt = st.session_state.messages[-1]["content"]
+
+    # Reset
+    if current_prompt.lower().strip() in ["reset", "nuovo", "cancella", "stop"]:
+        st.session_state.messages = []
+        st.rerun()
+
+    # ⭐ AGGIUNGIAMO LO SPINNER CIRCOLARE QUI (st.spinner)
+    with st.spinner("🧠 Timmy AI sta elaborando la tua richiesta..."):
+        
+        # RISPOSTA DEL MODELLO
+        with st.chat_message("model", avatar=logo_url):
+            try:
+                history_gemini = []
+                # Tutta la cronologia tranne l'ultimo (il prompt corrente)
+                for m in st.session_state.messages[:-1]: 
+                    history_gemini.append({"role": m["role"], "parts": [m["content"]]})
+                
+                # Inizio della generazione
+                chat = model.start_chat(history=history_gemini)
+                response = chat.send_message(current_prompt, stream=True)
+                
+                full_response = ""
+                message_placeholder = st.empty()
+                
+                # Streaming della risposta
+                for chunk in response:
+                    if chunk.text:
+                        full_response += chunk.text
+                        message_placeholder.markdown(full_response + "▌")
+                
+                message_placeholder.markdown(full_response)
+                
+                # Aggiungiamo la risposta completa solo alla fine
+                st.session_state.messages.append({"role": "model", "content": full_response})
+                
+                # Lo spinner si chiude automaticamente all'uscita dal blocco 'with st.spinner'
+
+            except Exception as e:
+                st.error(f"❌ Errore durante la generazione della risposta: {e}")
+
+
 # ----------------------------------------------------------------------
-# --- ZONA FISSA IN BASSO (Contiene Form e Input Chat) ---
+# --- 3. FORM COMMERCIALE (DOPO LA RISPOSTA) ---
 # ----------------------------------------------------------------------
 
-# Torniamo alla struttura più stabile: il Form viene renderizzato per primo 
-# nella zona interattiva, seguito dall'input chat.
+# Linea di separazione per estetica
+st.divider() 
 
 # Condizione: mostriamo il form solo se ci sono almeno due messaggi
 if len(st.session_state.messages) >= 2:
     
-    # Linea di separazione per estetica
-    st.divider() 
-
     # IL FORM DEVE CONTENERE TUTTA LA SUA LOGICA
     with st.form("email_form", clear_on_submit=True):
         st.markdown("### 💌 Richiedi una Proposta Commerciale")
@@ -213,61 +264,3 @@ if len(st.session_state.messages) >= 2:
             
         elif submitted and not user_email:
             st.warning("Inserisci l'email per procedere.")
-
-# --- INPUT PROMPT (DEVE ESSERE L'ULTIMO PER RESTARE FISSO IN FONDO) ---
-# Se si torna all'ordine precedente, il form scorre, ma almeno l'input chat rimane fisso.
-if prompt := st.chat_input("Scrivi qui la richiesta..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    # La logica di generazione della risposta deve essere fuori per funzionare correttamente
-    st.rerun() 
-
-# ----------------------------------------------------------------------
-# --- LOGICA DI RISPOSTA GEMINI (CON SPINNER DI ATTESA) ---
-# ----------------------------------------------------------------------
-
-# Controlliamo l'ultimo messaggio inviato per la logica di generazione
-if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
-    current_prompt = st.session_state.messages[-1]["content"]
-
-    # Reset
-    if current_prompt.lower().strip() in ["reset", "nuovo", "cancella", "stop"]:
-        st.session_state.messages = []
-        st.rerun()
-
-    # ⭐ AGGIUNGIAMO LO SPINNER DI ATTESA qui
-    with st.status("🧠 Timmy AI sta elaborando la tua richiesta...", expanded=True) as status:
-        
-        # RISPOSTA DEL MODELLO
-        with st.chat_message("model", avatar=logo_url):
-            try:
-                history_gemini = []
-                # Tutta la cronologia tranne l'ultimo (il prompt corrente)
-                for m in st.session_state.messages[:-1]: 
-                    history_gemini.append({"role": m["role"], "parts": [m["content"]]})
-                
-                status.update(label="💬 Connessione al modello Gemini stabilita...")
-                chat = model.start_chat(history=history_gemini)
-                
-                status.update(label="✍️ Generazione della risposta in corso...")
-                response = chat.send_message(current_prompt, stream=True)
-                
-                full_response = ""
-                message_placeholder = st.empty()
-                
-                for chunk in response:
-                    if chunk.text:
-                        full_response += chunk.text
-                        message_placeholder.markdown(full_response + "▌")
-                
-                message_placeholder.markdown(full_response)
-                
-                # Aggiungiamo la risposta completa solo alla fine
-                st.session_state.messages.append({"role": "model", "content": full_response})
-                
-                # Chiudiamo lo spinner una volta completato
-                status.update(label="✅ Risposta completa!", state="complete", expanded=False)
-                
-            except Exception as e:
-                # Se c'è un errore, mostriamolo e chiudiamo lo stato
-                status.update(label="❌ Errore durante la generazione della risposta.", state="error", expanded=True)
-                st.error(f"Errore: {e}")
