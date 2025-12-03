@@ -1208,7 +1208,7 @@ model = genai.GenerativeModel(
 )
 
 # INTERFACCIA
-st.title("🏆 Timmy AI")
+st.title("🦁 Timmy AI")
 st.caption("Assistente Virtuale Senior - Uso Interno")
 
 if "messages" not in st.session_state:
@@ -1250,6 +1250,7 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
                 
             except Exception as e:
                 st.error(f"Errore: {e}")
+
 
 
 
