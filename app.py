@@ -39,7 +39,9 @@ else:
 
 ---
 
-###  [DATABASE FORMAT - NO PREZZI]database_attivita = [
+###  [DATABASE FORMAT - NO PREZZI]
+database_attivita = 
+[
     {
         "nome": "5ensi",
         "format": "Sensoriale / Cena",
@@ -1180,7 +1182,7 @@ else:
         "note": "Prezzo indicativo, dipende molto dalla stagione.",
         "url": "https://www.teambuilding.it/project/yacht-day/"
     }
-]"""
+]
 
 # --- 4. AVVIO DELL'APP ---
 genai.configure(api_key=api_key)
@@ -1201,7 +1203,7 @@ model = genai.GenerativeModel(
 )
 
 # INTERFACCIA
-st.title("🏆 Preventivatore AI")
+st.title("🏆 Timmy AI")
 st.caption("Assistente Virtuale Senior - Uso Interno")
 
 if "messages" not in st.session_state:
@@ -1244,8 +1246,3 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
             except Exception as e:
 
                 st.error(f"Errore: {e}")
-
-
-
-
-
