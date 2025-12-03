@@ -3,7 +3,7 @@ import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 # --- 1. CONFIGURAZIONE PAGINA (PRIMA RIGA!) ---
-st.set_page_config(page_title="Preventivatore TeamBuilding", page_icon="🏆", layout="centered")
+st.set_page_config(page_title="Preventivatore TeamBuilding", page_icon="🦁", layout="centered")
 
 # --- 2. CONFIGURAZIONE API ---
 # La chiave viene letta dai "Secrets" di Streamlit
@@ -1250,3 +1250,4 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
                 
             except Exception as e:
                 st.error(f"Errore: {e}")
+
