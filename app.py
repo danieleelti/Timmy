@@ -1232,7 +1232,9 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
         st.session_state.messages = []
         st.rerun()
 
-  with st.chat_message("model"):
+ # ... codice precedente ...
+
+    with st.chat_message("model"):
         # Togliamo lo spinner classico perché vedremo il testo apparire
         try:
             history_gemini = []
@@ -1266,11 +1268,3 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
             
         except Exception as e:
             st.error(f"Errore: {e}")
-
-
-
-
-
-
-
-
