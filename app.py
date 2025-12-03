@@ -1232,25 +1232,40 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
         st.session_state.messages = []
         st.rerun()
 
-    with st.chat_message("model"):
-        with st.spinner("Elaborazione..."):
-            try:
-                history_gemini = []
-                for m in st.session_state.messages:
-                    if m["role"] != "model": 
-                        history_gemini.append({"role": "user", "parts": [m["content"]]})
-                    else:
-                        history_gemini.append({"role": "model", "parts": [m["content"]]})
-                
-                chat = model.start_chat(history=history_gemini[:-1])
-                response = chat.send_message(prompt)
-                
-                st.markdown(response.text)
-                st.session_state.messages.append({"role": "model", "content": response.text})
-                
-            except Exception as e:
-                st.error(f"Errore: {e}")
-
+  with st.chat_message("model"):
+        # Togliamo lo spinner classico perché vedremo il testo apparire
+        try:
+            history_gemini = []
+            for m in st.session_state.messages:
+                if m["role"] != "model": 
+                    history_gemini.append({"role": "user", "parts": [m["content"]]})
+                else:
+                    history_gemini.append({"role": "model", "parts": [m["content"]]})
+            
+            chat = model.start_chat(history=history_gemini[:-1])
+            
+            # 1. Attiviamo lo stream=True qui
+            response = chat.send_message(prompt, stream=True)
+            
+            # 2. Creiamo un contenitore vuoto per il testo
+            full_response = ""
+            message_placeholder = st.empty()
+            
+            # 3. Ciclo per mostrare le parole una per una
+            for chunk in response:
+                if chunk.text:
+                    full_response += chunk.text
+                    # Aggiungiamo un cursore "▌" per effetto visivo
+                    message_placeholder.markdown(full_response + "▌")
+            
+            # 4. Alla fine mostriamo il testo pulito senza cursore
+            message_placeholder.markdown(full_response)
+            
+            # 5. Salviamo nella memoria
+            st.session_state.messages.append({"role": "model", "content": full_response})
+            
+        except Exception as e:
+            st.error(f"Errore: {e}")
 
 
 
