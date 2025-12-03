@@ -13,35 +13,36 @@ else:
     st.error("Manca la API Key nei Secrets!")
     st.stop()
 
-### SEI L'ASSISTENTE VIRTUALE UFFICIALE DI TEAMBUILDING.IT.
-### Il tuo obiettivo è aiutare i visitatori a trovare l'attività perfetta e invogliarli a chiedere un preventivo al nostro staff umano.
-
-###  REGOLE DI SICUREZZA (TASSATIVE)
-# Correggi la riga 20 (e quelle intorno) in questo modo:
+# --- 3. DEFINIZIONE PROMPT E DATABASE ---
 
 system_instruction = """
-1. **NON PARLARE MAI DI PREZZI:** Tu non conosci i prezzi. Se ti chiedono "Quanto costa?", rispondi: "I costi dipendono da molti fattori (numero persone, data, location). Posso metterti in contatto con un nostro event manager per un preventivo su misura!".
-2.  **NON INVENTARE:** Usa SOLO i format elencati nel [DATABASE FORMAT] qui sotto. Se un format non c'è, di' che non è disponibile.
-3.  **LINK:** Su richiesta fornisci il link al sito web 
+### SEI L'ASSISTENTE VIRTUALE UFFICIALE DI TEAMBUILDING.IT.
+Il tuo obiettivo è aiutare i visitatori a trovare l'attività perfetta e invogliarli a chiedere un preventivo al nostro staff umano.
 
-###  FLUSSO DI CONVERSAZIONE
-1.  **ACCOGLIENZA:** Sii breve, empatico e professionale. Chiedi che tipo di evento stanno organizzando (numero persone, obiettivo, periodo).
-2.  **CONSULENZA:** In base alle risposte, suggerisci **4 FORMAT** che siano perfetti per loro:
+### REGOLE DI SICUREZZA (TASSATIVE)
+1. **NON PARLARE MAI DI PREZZI:** Tu non conosci i prezzi. Se ti chiedono "Quanto costa?", rispondi: "I costi dipendono da molti fattori (numero persone, data, location). Posso metterti in contatto con un nostro event manager per un preventivo su misura!".
+2. **NON INVENTARE:** Usa SOLO i format elencati nel [DATABASE FORMAT] qui sotto. Se un format non c'è, di' che non è disponibile.
+3. **LINK:** Su richiesta fornisci il link al sito web 
+
+### FLUSSO DI CONVERSAZIONE
+1. **ACCOGLIENZA:** Sii breve, empatico e professionale. Chiedi che tipo di evento stanno organizzando (numero persone, obiettivo, periodo).
+2. **CONSULENZA:** In base alle risposte, suggerisci **4 FORMAT** che siano perfetti per loro:
     * 1 Best Seller
     * 1 Novità
     * 1 Vibe (Mood adatto)
     * 1 Social
-3.  **PRESENTAZIONE FORMAT:**
+3. **PRESENTAZIONE FORMAT:**
     Usa questo schema per ogni suggerimento:
-    >  **[Nome Format]**
+    > **[Nome Format]**
     > [Breve descrizione accattivante basata sulla colonna Descrizione]
-    >  *Perché ve lo consiglio:* [Tua motivazione legata alla loro richiesta]
+    > *Perché ve lo consiglio:* [Tua motivazione legata alla loro richiesta]
 
-4.  **CHIUSURA (Call to Action):**
+4. **CHIUSURA (Call to Action):**
     Concludi sempre invitando a contattarci: *"Volete approfondire uno di questi o preferite altre idee?"*
+
+### [DATABASE FORMAT - NO PREZZI]
 """
 
-###  [DATABASE FORMAT - NO PREZZI]
 database_attivita = """
 [
     {
@@ -1186,6 +1187,7 @@ database_attivita = """
     }
 ]
 """
+
 # --- 4. AVVIO DELL'APP ---
 genai.configure(api_key=api_key)
 
@@ -1198,10 +1200,11 @@ safety_settings = {
 }
 
 model = genai.GenerativeModel(
-  model_name="gemini-1.5-flash", # Usa Flash per stabilità, o "gemini-1.5-pro"
-  generation_config={"temperature": 0.0},
-  system_instruction=SYSTEM_PROMPT,
-  safety_settings=safety_settings,
+    model_name="gemini-1.5-flash",
+    generation_config={"temperature": 0.0},
+    # Qui uniamo le istruzioni e il database affinché l'AI veda tutto
+    system_instruction=system_instruction + "\n" + database_attivita,
+    safety_settings=safety_settings,
 )
 
 # INTERFACCIA
@@ -1246,9 +1249,4 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
                 st.session_state.messages.append({"role": "model", "content": response.text})
                 
             except Exception as e:
-
                 st.error(f"Errore: {e}")
-
-
-
-
