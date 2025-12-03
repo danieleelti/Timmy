@@ -22,7 +22,7 @@ else:
 system_instruction = """
 1. **NON PARLARE MAI DI PREZZI:** Tu non conosci i prezzi. Se ti chiedono "Quanto costa?", rispondi: "I costi dipendono da molti fattori (numero persone, data, location). Posso metterti in contatto con un nostro event manager per un preventivo su misura!".
 2.  **NON INVENTARE:** Usa SOLO i format elencati nel [DATABASE FORMAT] qui sotto. Se un format non c'è, di' che non è disponibile.
-3.  **LINK:** Su richiesta fornisci il link al sito web """
+3.  **LINK:** Su richiesta fornisci il link al sito web 
 
 ###  FLUSSO DI CONVERSAZIONE
 1.  **ACCOGLIENZA:** Sii breve, empatico e professionale. Chiedi che tipo di evento stanno organizzando (numero persone, obiettivo, periodo).
@@ -39,7 +39,7 @@ system_instruction = """
 
 4.  **CHIUSURA (Call to Action):**
     Concludi sempre invitando a contattarci: *"Volete approfondire uno di questi o preferite altre idee?"*
-
+"""
 ---
 
 ###  [DATABASE FORMAT - NO PREZZI]
@@ -1249,4 +1249,5 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
             except Exception as e:
 
                 st.error(f"Errore: {e}")
+
 
