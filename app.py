@@ -1255,3 +1255,4 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
 
 
 
+
