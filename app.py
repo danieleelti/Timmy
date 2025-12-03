@@ -21,21 +21,21 @@ st.set_page_config(page_title="Timmy", page_icon="🦁", layout="centered")
 
 # --- DEBUG LATERALE (Verifica caricamento di TUTTI i database) ---
 # Per nascondere le scritte, basta commentare l'intero blocco (con #)
-try:
+# try:
     # 1. FORMAT DB
-    format_count = len(json.loads(database_attivita))
-    st.sidebar.success(f"✅ Catalogo FORMAT: {format_count} voci.")
+  #  format_count = len(json.loads(database_attivita))
+  #  st.sidebar.success(f"✅ Catalogo FORMAT: {format_count} voci.")
     
     # 2. FAQ DB
-    faq_count = len(json.loads(faq_database))
-    st.sidebar.success(f"✅ Catalogo FAQ: {faq_count} voci.")
+  #  faq_count = len(json.loads(faq_database))
+  #  st.sidebar.success(f"✅ Catalogo FAQ: {faq_count} voci.")
     
     # 3. LOCATION DB
-    location_count = len(json.loads(location_database))
-    st.sidebar.success(f"✅ Catalogo LOCATION: {location_count} voci.")
+  #  location_count = len(json.loads(location_database))
+  #  st.sidebar.success(f"✅ Catalogo LOCATION: {location_count} voci.")
 
-except Exception as e:
-    st.sidebar.error("❌ ERRORE CRITICO di caricamento DB.")
+# except Exception as e:
+   # st.sidebar.error("❌ ERRORE CRITICO di caricamento DB.")
     # st.sidebar.exception(e) # Puoi decommentare questa riga per vedere l'errore esatto
 
 # --- FINE BLOCCO DEBUG ---
@@ -238,6 +238,7 @@ if len(st.session_state.messages) >= 2:
                     st.error("Si è verificato un errore critico durante l'invio. Controlla i log di Streamlit e le credenziali SMTP.")
         elif submitted and not user_email:
             st.warning("Inserisci l'email per procedere.")
+
 
 
 
