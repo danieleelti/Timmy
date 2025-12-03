@@ -62,7 +62,8 @@ safety_settings = {
 }
 
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-pro",
+    model_name="gemini-3-pro-preview",
+    # Metti le impostazioni direttamente qui tra parentesi graffe
     generation_config={"temperature": 0.0}, 
     system_instruction=system_instruction + "\n" + database_attivita,
     safety_settings=safety_settings,
@@ -127,3 +128,4 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
             
         except Exception as e:
             st.error(f"Errore: {e}")
+
