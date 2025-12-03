@@ -47,31 +47,33 @@ else:
     st.error("Manca la API Key nei Secrets!")
     st.stop()
 
-# --- FUNZIONE DI INVIO EMAIL (STRUTTURA CORRETTA) ---
-# --- FUNZIONE DI INVIO EMAIL (FINALE) ---
+# --- FUNZIONE DI INVIO EMAIL (DEBUG ESTESO) ---
+
 def send_chat_via_email(recipient_email, chat_history):
     # Dati presi da st.secrets
     try:
         sender_email = st.secrets["smtp"]["sender_email"]
         sender_password = st.secrets["smtp"]["sender_password"]
         smtp_server = st.secrets["smtp"]["server"]
-        smtp_port = st.secrets["smtp"]["port"]
+        smtp_port = int(st.secrets["smtp"]["port"]) # Conversione a intero
     except KeyError:
         st.error("Errore: Credenziali SMTP (server, port, etc.) mancanti in Streamlit Secrets.")
+        return False
+    except ValueError:
+        st.error("Errore: La porta SMTP (in secrets.toml) deve essere un numero intero (es. 587).")
         return False
 
     # Definiamo la lista dei destinatari finali
     destinatari = [recipient_email, EMAIL_COMMERCIALE]
     
     try:
-        # Crea il corpo dell'email
+        # Crea il corpo dell'email (omesso per brevità)
         body = "Ecco la cronologia della conversazione con Timmy AI:\n\n"
         for message in chat_history:
             role = "UTENTE" if message["role"] == "user" else "TIMMY AI"
             content = message['content'].replace('**', '').replace('###', '').replace('\n', '\n')
             body += f"--- {role} ---\n{content}\n\n"
 
-        # Configura l'email
         msg = MIMEMultipart()
         msg['From'] = sender_email
         msg['To'] = recipient_email
@@ -79,19 +81,25 @@ def send_chat_via_email(recipient_email, chat_history):
         msg['Subject'] = f"Consulenza Timmy AI per {recipient_email} - TeamBuilding.it"
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
-        # Invia l'email alla lista completa
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
+        # TENTATIVO DI INVIO
+        with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server: # Timeout aggiunto
             server.starttls()
             server.login(sender_email, sender_password)
             server.sendmail(sender_email, destinatari, msg.as_string()) 
         
         return True
 
-    except Exception as e:
-        # Errore di invio effettivo (password sbagliata, porta bloccata, ecc.)
-        st.error(f"Errore di invio SMTP: {e}. Controlla la password, la porta ({smtp_port}) e il server.")
+    except smtplib.SMTPAuthenticationError:
+        st.error("❌ Errore SMTP: Credenziali non valide (nome utente/password errata per il server).")
         return False
-
+    except smtplib.SMTPConnectError:
+        st.error(f"❌ Errore SMTP: Impossibile connettersi al server '{smtp_server}'. Controlla la porta ({smtp_port}) e l'indirizzo del server.")
+        return False
+    except Exception as e:
+        # Errore generico (Timeout, ecc.)
+        st.error(f"❌ Errore critico di invio: {type(e).__name__} - {e}")
+        return False
+# --- FINE FUNZIONE EMAIL DEBUG ESTESO ---
 # --- FINE FUNZIONE EMAIL ---
 
 # --- 3. ISTRUZIONI DI SISTEMA ---
@@ -249,4 +257,5 @@ if len(st.session_state.messages) >= 2:
         
         elif submitted and not user_email:
             st.warning("Inserisci l'email per procedere.")
+
 
