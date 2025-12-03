@@ -71,7 +71,8 @@ st.caption("Team Builder Virtuale di TeamBuilding.it")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
-    welcome = "Ciao! Sono pronto. Dimmi numero pax, data e obiettivo."
+    # Nuova frase di benvenuto più calda
+    welcome = "Ciao, sono **Timmy**, il tuo TeamBuilder AI! 🦁 Sono qui per aiutarti a scoprire il nostro mondo. Come posso esserti utile oggi?"
     st.session_state.messages.append({"role": "model", "content": welcome})
 
 # Mostra cronologia
@@ -126,3 +127,4 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
             
         except Exception as e:
             st.error(f"Errore: {e}")
+
