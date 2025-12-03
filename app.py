@@ -47,20 +47,20 @@ else:
     st.error("Manca la API Key nei Secrets!")
     st.stop()
 
-# --- FUNZIONE DI INVIO EMAIL (DEBUG ESTESO) ---
+# --- FUNZIONE DI INVIO EMAIL (FIXED) ---
 
 def send_chat_via_email(recipient_email, chat_history):
     # Dati presi da st.secrets
     try:
         sender_email = st.secrets["smtp"]["sender_email"]
         sender_password = st.secrets["smtp"]["sender_password"]
-        smtp_server = st.secrets["smtp"]["server"]
+        smtp_server = st.secrets["smtp"]["host"] # Ho corretto 'server' in 'host' per consistenza con l'immagine secrets.toml
         smtp_port = int(st.secrets["smtp"]["port"]) # Conversione a intero
-    except KeyError:
-        st.error("Errore: Credenziali SMTP (server, port, etc.) mancanti in Streamlit Secrets.")
+    except KeyError as e:
+        st.error(f"❌ Errore: Credenziale SMTP mancante in Streamlit Secrets: {e}.")
         return False
     except ValueError:
-        st.error("Errore: La porta SMTP (in secrets.toml) deve essere un numero intero (es. 587).")
+        st.error("❌ Errore: La porta SMTP (in secrets.toml) deve essere un numero intero (es. 465).")
         return False
 
     # Definiamo la lista dei destinatari finali
@@ -71,6 +71,7 @@ def send_chat_via_email(recipient_email, chat_history):
         body = "Ecco la cronologia della conversazione con Timmy AI:\n\n"
         for message in chat_history:
             role = "UTENTE" if message["role"] == "user" else "TIMMY AI"
+            # Pulizia del contenuto
             content = message['content'].replace('**', '').replace('###', '').replace('\n', '\n')
             body += f"--- {role} ---\n{content}\n\n"
 
@@ -82,25 +83,31 @@ def send_chat_via_email(recipient_email, chat_history):
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
         # TENTATIVO DI INVIO
-        with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server: # Timeout aggiunto
-            server.starttls()
+        # VECCHIO ERRORE: with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
+        # CORREZIONE: Usa SMTP_SSL per la porta 465 (SSL/TLS implicito)
+        with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=30) as server: # Aumento il timeout a 30s per sicurezza
+
+            # VECCHIO ERRORE: server.starttls() - NON NECESSARIO con SMTP_SSL
+            # Questa linea deve essere RIMOSSA o COMMENTATA
+            # server.starttls() 
+
             server.login(sender_email, sender_password)
             server.sendmail(sender_email, destinatari, msg.as_string()) 
-        
+            
+        st.success(f"✅ Email di consulenza inviata a {recipient_email} e a {EMAIL_COMMERCIALE}!")
         return True
 
     except smtplib.SMTPAuthenticationError:
-        st.error("❌ Errore SMTP: Credenziali non valide (nome utente/password errata per il server).")
+        st.error("❌ Errore SMTP: Credenziali non valide. Controlla Nome Utente (email completa) e Password.")
         return False
     except smtplib.SMTPConnectError:
-        st.error(f"❌ Errore SMTP: Impossibile connettersi al server '{smtp_server}'. Controlla la porta ({smtp_port}) e l'indirizzo del server.")
+        st.error(f"❌ Errore SMTP: Impossibile connettersi al server '{smtp_server}'. Controlla che il server sia raggiungibile.")
         return False
     except Exception as e:
-        # Errore generico (Timeout, ecc.)
+        # Cattura l'errore precedente SMTPServerDisconnected o Timeout
         st.error(f"❌ Errore critico di invio: {type(e).__name__} - {e}")
         return False
-# --- FINE FUNZIONE EMAIL DEBUG ESTESO ---
-# --- FINE FUNZIONE EMAIL ---
+# --- FINE FUNZIONE EMAIL FIXED ---
 
 # --- 3. ISTRUZIONI DI SISTEMA ---
 # Usiamo istruzioni chiare per guidare il modello senza bloccarlo
@@ -257,5 +264,6 @@ if len(st.session_state.messages) >= 2:
         
         elif submitted and not user_email:
             st.warning("Inserisci l'email per procedere.")
+
 
 
