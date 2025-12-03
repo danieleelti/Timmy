@@ -13,12 +13,13 @@ logo_url = "https://www.teambuilding.it/sito/wp-content/uploads/2023/07/cropped-
 st.set_page_config(page_title="Timmy", page_icon="🦁", layout="centered")
 
 # --- DEBUG LATERALE (Verifica caricamento dati) ---
-try:
-    dati_json = json.loads(database_attivita)
-    numero_format = len(dati_json)
-    st.sidebar.success(f"✅ Catalogo Attivo: {numero_format} format.")
-except:
-    st.sidebar.error("⚠️ Errore lettura CSV/Database.")
+#try:
+#   dati_json = json.loads(database_attivita)
+#    numero_format = len(dati_json)
+#    st.sidebar.success(f"✅ Catalogo Attivo: {numero_format} format.")
+# except:
+#    st.sidebar.error("⚠️ Errore lettura CSV/Database.")
+# --- FINE BLOCCO DEBUG ---
 
 # --- 2. CONFIGURAZIONE API ---
 if "GOOGLE_API_KEY" in st.secrets:
@@ -136,3 +137,4 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
             
         except Exception as e:
             st.error(f"Errore: {e}")
+
