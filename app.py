@@ -1,3 +1,6 @@
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import streamlit as st
 import google.generativeai as genai
 import json
@@ -41,6 +44,47 @@ if "GOOGLE_API_KEY" in st.secrets:
 else:
     st.error("Manca la API Key nei Secrets!")
     st.stop()
+
+# --- FUNZIONE DI INVIO EMAIL ---
+def send_chat_via_email(recipient_email, chat_history):
+    # Dati presi da st.secrets
+    try:
+        sender_email = st.secrets["smtp"]["sender_email"]
+        sender_password = st.secrets["smtp"]["sender_password"]
+        smtp_server = st.secrets["smtp"]["server"]
+        smtp_port = st.secrets["smtp"]["port"]
+    except KeyError:
+        st.error("Errore: Credenziali SMTP (sender_email, server, etc.) mancanti nel file secrets.toml. Non posso inviare l'email.")
+        return False
+
+    try:
+        # Crea il corpo dell'email
+        body = "Ecco la cronologia della conversazione con Timmy AI:\n\n"
+        for message in chat_history:
+            role = "UTENTE" if message["role"] == "user" else "TIMMY AI"
+            content = message['content'].replace('**', '').replace('###', '').replace('\n', '\n')
+            body += f"--- {role} ---\n{content}\n\n"
+
+        # Configura l'email
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = recipient_email
+        msg['Subject'] = f"Consulenza Timmy AI per {recipient_email} - TeamBuilding.it"
+        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+
+        # Invia l'email usando le credenziali di mail.eventmedia.it
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls() # Abilita la sicurezza TLS/STARTTLS
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, recipient_email, msg.as_string())
+        
+        return True
+    except Exception as e:
+        # Se l'invio fallisce (es. porta sbagliata o password errata)
+        st.error(f"Errore di invio SMTP: {e}. Controlla la porta e la password in secrets.toml.")
+        return False
+        
+        # --- FINE FUNZIONE EMAIL ---
 
 # --- 3. ISTRUZIONI DI SISTEMA ---
 # Usiamo istruzioni chiare per guidare il modello senza bloccarlo
@@ -160,5 +204,33 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
         except Exception as e:
             st.error(f"Errore: {e}")
 
+# --- FORM DI RECAP E INVIO EMAIL (NUOVA SEZIONE IN FONDO AL FILE) ---
+
+st.divider() # Linea di separazione per estetica
+
+# Condizione: mostriamo il form solo se ci sono almeno due messaggi (una domanda e una risposta)
+if len(st.session_state.messages) >= 2:
+    with st.form("email_form", clear_on_submit=True):
+        st.markdown("### 💌 Richiedi una Proposta Commerciale")
+        st.markdown("Inserisci la tua email per ricevere subito il riepilogo della consulenza e una proposta ad-hoc entro due ore.")
+        
+        user_email = st.text_input("La tua email:", key="user_email_input")
+        
+        submitted = st.form_submit_button("Invia cronologia e richiedi preventivo")
+
+        if submitted and user_email:
+            if "@" not in user_email or "." not in user_email:
+                st.warning("Per favore, inserisci un indirizzo email valido.")
+            else:
+                # Chiamiamo la funzione di invio con la cronologia salvata
+                success = send_chat_via_email(user_email, st.session_state.messages)
+                
+                if success:
+                    st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarete ricontattati entro due ore.")
+                else:
+                    # L'errore specifico è già stampato nella console dalla funzione
+                    st.error("Si è verificato un errore critico durante l'invio. Controlla i log di Streamlit e le credenziali SMTP.")
+        elif submitted and not user_email:
+            st.warning("Inserisci l'email per procedere.")
 
 
