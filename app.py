@@ -5,11 +5,16 @@ from google.generativeai.types import HarmCategory, HarmBlockThreshold
 # --- IMPORT DATABASE ---
 from format import database_attivita
 
-# --- 1. CONFIGURAZIONE PAGINA (PRIMA RIGA!) ---
+# --- CONFIGURAZIONE ---
+# 1. URL DEL LOGO (Lo definiamo qui per comodità)
+logo_url = "https://www.teambuilding.it/sito/wp-content/uploads/2023/07/cropped-favicon-32x32.png"
+
+# 2. CONFIGURAZIONE PAGINA
+# Nota: page_icon accetta solo Emoji o file locali. Lasciamo il leone per il browser tab,
+# oppure carica il file 'logo.png' su GitHub e scrivi page_icon="logo.png"
 st.set_page_config(page_title="Timmy", page_icon="🦁", layout="centered")
 
 # --- 2. CONFIGURAZIONE API ---
-# La chiave viene letta dai "Secrets" di Streamlit
 if "GOOGLE_API_KEY" in st.secrets:
     api_key = st.secrets["GOOGLE_API_KEY"]
 else:
@@ -49,7 +54,6 @@ Il tuo obiettivo è aiutare i visitatori a trovare l'attività perfetta e invogl
 # --- 4. AVVIO DELL'APP ---
 genai.configure(api_key=api_key)
 
-# SICUREZZA (Sblocco totale)
 safety_settings = {
     HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
     HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
@@ -58,26 +62,29 @@ safety_settings = {
 }
 
 model = genai.GenerativeModel(
-    model_name="gemini-3-pro-preview",
-    # Metti le impostazioni direttamente qui tra parentesi graffe
+    model_name="gemini-1.5-pro",
     generation_config={"temperature": 0.0}, 
     system_instruction=system_instruction + "\n" + database_attivita,
     safety_settings=safety_settings,
 )
 
 # INTERFACCIA
-st.title("🦁 Timmy AI")
+# Usiamo il logo anche nel titolo tramite un trucco markdown (opzionale, ma carino)
+st.logo(logo_url, icon_image=logo_url) # Appare in alto a sinistra nella sidebar se la apri
+st.title("Timmy AI")
 st.caption("Team Builder Virtuale di TeamBuilding.it")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
-    # Nuova frase di benvenuto più calda
-    welcome = "Ciao, sono **Timmy**, il tuo TeamBuilder AI! 🦁 Sono qui per aiutarti a scoprire il nostro mondo. Come posso esserti utile oggi?"
+    welcome = "Ciao, sono **Timmy**, il tuo TeamBuilder AI!\nSono qui per aiutarti a scoprire il nostro mondo. Come posso esserti utile oggi?"
     st.session_state.messages.append({"role": "model", "content": welcome})
 
 # Mostra cronologia
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
+    # Se il messaggio è dell'AI (model), usiamo il logo personalizzato come avatar
+    avatar_icon = logo_url if message["role"] == "model" else None
+    
+    with st.chat_message(message["role"], avatar=avatar_icon):
         st.markdown(message["content"])
 
 # Input
@@ -92,8 +99,8 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
         st.rerun()
 
     # RISPOSTA DEL MODELLO
-    with st.chat_message("model"):
-        # Togliamo lo spinner classico perché vedremo il testo apparire
+    # Anche qui usiamo il logo mentre scrive
+    with st.chat_message("model", avatar=logo_url):
         try:
             history_gemini = []
             for m in st.session_state.messages:
@@ -102,29 +109,21 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
                 else:
                     history_gemini.append({"role": "model", "parts": [m["content"]]})
             
-            # Qui escludiamo l'ultimo messaggio perché lo inviamo con send_message
             chat = model.start_chat(history=history_gemini[:-1])
             
-            # 1. Attiviamo lo stream=True qui
             response = chat.send_message(prompt, stream=True)
             
-            # 2. Creiamo un contenitore vuoto per il testo
             full_response = ""
             message_placeholder = st.empty()
             
-            # 3. Ciclo per mostrare le parole una per una
             for chunk in response:
                 if chunk.text:
                     full_response += chunk.text
-                    # Aggiungiamo un cursore "▌" per effetto visivo
                     message_placeholder.markdown(full_response + "▌")
             
-            # 4. Alla fine mostriamo il testo pulito senza cursore
             message_placeholder.markdown(full_response)
             
-            # 5. Salviamo nella memoria
             st.session_state.messages.append({"role": "model", "content": full_response})
             
         except Exception as e:
             st.error(f"Errore: {e}")
-
