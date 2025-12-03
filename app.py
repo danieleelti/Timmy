@@ -234,7 +234,7 @@ if len(st.session_state.messages) >= 2:
         submitted = st.form_submit_button("Invia cronologia e richiedi preventivo")
 
 if submitted and user_email:
-            # Validazione base dell'email
+            # Validazione base dell email
             if "@" not in user_email or "." not in user_email:
                 st.warning("Per favore, inserisci un indirizzo email valido.")
             else:
@@ -251,4 +251,5 @@ if submitted and user_email:
                     
         elif submitted and not user_email:
             st.warning("Inserisci l'email per procedere.")
+
 
