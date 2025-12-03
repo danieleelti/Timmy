@@ -47,22 +47,17 @@ else:
     st.error("Manca la API Key nei Secrets!")
     st.stop()
 
-# --- FUNZIONE DI INVIO EMAIL (FIXED) ---
+# --- FUNZIONE DI INVIO EMAIL (FIXED + UX) ---
 
 def send_chat_via_email(recipient_email, chat_history):
     try:
         sender_email = st.secrets["smtp"]["sender_email"]
         sender_password = st.secrets["smtp"]["sender_password"]
-        
-        # USARE "host"
         smtp_server = st.secrets["smtp"]["host"] 
-        
-        # USARE "port"
         smtp_port = int(st.secrets["smtp"]["port"]) 
-        
-    except KeyError as e:
-        # Questo errore si verifica se manca una delle chiavi sopra
-        st.error(f"❌ Errore: Credenziale SMTP mancante in Streamlit Secrets: {e}.")
+    except KeyError:
+        # Se mancano le chiavi, l'errore viene gestito, ma non mostriamo il dettaglio tecnico all'utente
+        st.error("❌ Si è verificato un errore interno. Riprova più tardi.") 
         return False
 
     # Definiamo la lista dei destinatari finali
@@ -73,7 +68,6 @@ def send_chat_via_email(recipient_email, chat_history):
         body = "Ecco la cronologia della conversazione con Timmy AI:\n\n"
         for message in chat_history:
             role = "UTENTE" if message["role"] == "user" else "TIMMY AI"
-            # Pulizia del contenuto
             content = message['content'].replace('**', '').replace('###', '').replace('\n', '\n')
             body += f"--- {role} ---\n{content}\n\n"
 
@@ -85,14 +79,7 @@ def send_chat_via_email(recipient_email, chat_history):
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
         # TENTATIVO DI INVIO
-        # VECCHIO ERRORE: with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
-        # CORREZIONE: Usa SMTP_SSL per la porta 465 (SSL/TLS implicito)
-        with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=30) as server: # Aumento il timeout a 30s per sicurezza
-
-            # VECCHIO ERRORE: server.starttls() - NON NECESSARIO con SMTP_SSL
-            # Questa linea deve essere RIMOSSA o COMMENTATA
-            # server.starttls() 
-
+        with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=30) as server:
             server.login(sender_email, sender_password)
             server.sendmail(sender_email, destinatari, msg.as_string()) 
             
@@ -100,16 +87,18 @@ def send_chat_via_email(recipient_email, chat_history):
         return True
 
     except smtplib.SMTPAuthenticationError:
-        st.error("❌ Errore SMTP: Credenziali non valide. Controlla Nome Utente (email completa) e Password.")
+        st.error("❌ Non siamo riusciti ad autenticarci. Contatta il supporto tecnico.")
         return False
     except smtplib.SMTPConnectError:
-        st.error(f"❌ Errore SMTP: Impossibile connettersi al server '{smtp_server}'. Controlla che il server sia raggiungibile.")
+        st.error("❌ Errore di connessione. Il server di posta non è raggiungibile.")
         return False
     except Exception as e:
-        # Cattura l'errore precedente SMTPServerDisconnected o Timeout
-        st.error(f"❌ Errore critico di invio: {type(e).__name__} - {e}")
+        # Rimuovi l'errore tecnico mostrando solo un messaggio generico
+        st.error("❌ Errore critico di invio. Riprova o contatta il supporto.")
+        # Se vuoi tenere il debug nascosto per te, usa:
+        # st.toast(f"Errore nascosto: {type(e).__name__} - {e}")
         return False
-# --- FINE FUNZIONE EMAIL FIXED ---
+# --- FINE FUNZIONE EMAIL FIXED + UX ---
 
 # --- 3. ISTRUZIONI DI SISTEMA ---
 # Usiamo istruzioni chiare per guidare il modello senza bloccarlo
@@ -244,22 +233,22 @@ if len(st.session_state.messages) >= 2:
         
         submitted = st.form_submit_button("Invia cronologia e richiedi preventivo")
 
-        if submitted and user_email:
-            # Validazione base dell'email
-            if "@" not in user_email or "." not in user_email:
-                st.warning("Per favore, inserisci un indirizzo email valido.")
-            else:
-                # Chiamiamo la funzione di invio con la cronologia salvata
-                success = send_chat_via_email(user_email, st.session_state.messages) 
-                
-                if success:
-                    st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarete ricontattati entro due ore.")
-                    
-                    # Feedback finale di ringraziamento
-                    st.markdown("---")
-                    st.info("### Grazie di averci scritto! Verrai ricontattato a breve dal nostro team commerciale.")
-                
-                # Il messaggio di errore specifico è già stampato dalla funzione send_chat_via_email.
-        
-        elif submitted and not user_email:
-            st.warning("Inserisci l'email per procedere.")
+if submitted and user_email:
+            # Validazione base dell'email
+            if "@" not in user_email or "." not in user_email:
+                st.warning("Per favore, inserisci un indirizzo email valido.")
+            else:
+                # Chiamiamo la funzione di invio con la cronologia salvata
+                success = send_chat_via_email(user_email, st.session_state.messages) 
+                
+                if success:
+                    st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarai ricontattato prestissimo.")
+                    
+                    # Feedback finale di ringraziamento (MODIFICATO QUI!)
+                    st.markdown("---")
+                    # Ho rimosso il "###" per rendere il testo più piccolo
+                    st.info("👉 Grazie di averci scritto! Verrai ricontattato a breve dal nostro team commerciale.") # Testo più piccolo
+                    
+        elif submitted and not user_email:
+            st.warning("Inserisci l'email per procedere.")
+
