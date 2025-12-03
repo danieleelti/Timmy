@@ -1180,7 +1180,7 @@ else:
         "note": "Prezzo indicativo, dipende molto dalla stagione.",
         "url": "https://www.teambuilding.it/project/yacht-day/"
     }
-"""
+]"""
 
 # --- 4. AVVIO DELL'APP ---
 genai.configure(api_key=api_key)
@@ -1244,6 +1244,7 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
             except Exception as e:
 
                 st.error(f"Errore: {e}")
+
 
 
 
