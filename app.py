@@ -14,7 +14,7 @@ else:
     st.stop()
 
 ### SEI L'ASSISTENTE VIRTUALE UFFICIALE DI TEAMBUILDING.IT.
-Il tuo obiettivo è aiutare i visitatori a trovare l'attività perfetta e invogliarli a chiedere un preventivo al nostro staff umano.
+### Il tuo obiettivo è aiutare i visitatori a trovare l'attività perfetta e invogliarli a chiedere un preventivo al nostro staff umano.
 
 ### 🚫 REGOLE DI SICUREZZA (TASSATIVE)
 1.  **NON PARLARE MAI DI PREZZI:** Tu non conosci i prezzi. Se ti chiedono "Quanto costa?", rispondi: *"I costi dipendono da molti fattori (numero persone, data, location). Posso metterti in contatto con un nostro event manager per un preventivo su misura!"*.
@@ -1245,4 +1245,5 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
             except Exception as e:
 
                 st.error(f"Errore: {e}")
+
 
