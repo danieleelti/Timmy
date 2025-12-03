@@ -14,13 +14,25 @@ logo_url = "https://www.teambuilding.it/sito/wp-content/uploads/2023/07/cropped-
 
 st.set_page_config(page_title="Timmy", page_icon="🦁", layout="centered")
 
-# --- DEBUG LATERALE (Verifica caricamento dati) ---
-#try:
-#   dati_json = json.loads(database_attivita)
-#    numero_format = len(dati_json)
-#    st.sidebar.success(f"✅ Catalogo Attivo: {numero_format} format.")
-# except:
-#    st.sidebar.error("⚠️ Errore lettura CSV/Database.")
+# --- DEBUG LATERALE (Verifica caricamento di TUTTI i database) ---
+# Per nascondere le scritte, basta commentare l'intero blocco (con #)
+try:
+    # 1. FORMAT DB
+    format_count = len(json.loads(database_attivita))
+    st.sidebar.success(f"✅ Catalogo FORMAT: {format_count} voci.")
+    
+    # 2. FAQ DB
+    faq_count = len(json.loads(faq_database))
+    st.sidebar.success(f"✅ Catalogo FAQ: {faq_count} voci.")
+    
+    # 3. LOCATION DB
+    location_count = len(json.loads(location_database))
+    st.sidebar.success(f"✅ Catalogo LOCATION: {location_count} voci.")
+
+except Exception as e:
+    st.sidebar.error("❌ ERRORE CRITICO di caricamento DB.")
+    # st.sidebar.exception(e) # Puoi decommentare questa riga per vedere l'errore esatto
+
 # --- FINE BLOCCO DEBUG ---
 
 # --- 2. CONFIGURAZIONE API ---
@@ -75,12 +87,20 @@ safety_settings = {
     HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
 }
 
-# --- BLOCCO MODELLO TASSATIVO RICHIESTO ---
+# --- BLOCCO MODELLO TASSATIVO RICHIESTO (con TUTTI i Database) ---
+
+# 1. Creiamo la stringa completa del prompt unendo ISTRUZIONI + tutti i DATASET
+full_prompt_with_data = (
+    system_instruction + 
+    "\n\n### [FAQ AZIENDALI]:\n" + faq_database + 
+    "\n\n### [COPERTURA GEOGRAFICA]:\n" + location_database +
+    "\n\n### [DATABASE FORMAT]:\n" + database_attivita
+)
+
 model = genai.GenerativeModel(
     model_name="gemini-3-pro-preview",
-    # Metti le impostazioni direttamente qui tra parentesi graffe
     generation_config={"temperature": 0.0}, 
-    system_instruction=system_instruction + "\n" + database_attivita,
+    system_instruction=full_prompt_with_data, # <-- Qui passiamo l'unica mega-variabile
     safety_settings=safety_settings,
 )
 
@@ -139,5 +159,6 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
             
         except Exception as e:
             st.error(f"Errore: {e}")
+
 
 
