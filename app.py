@@ -6,6 +6,8 @@ from google.generativeai.types import HarmCategory, HarmBlockThreshold
 # --- IMPORT DATABASE ---
 # Assicurati che il file format.py sia nella stessa cartella
 from format import database_attivita
+from faq import faq_database          
+from location import location_database 
 
 # --- CONFIGURAZIONE ---
 logo_url = "https://www.teambuilding.it/sito/wp-content/uploads/2023/07/cropped-favicon-32x32.png"
@@ -137,4 +139,5 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
             
         except Exception as e:
             st.error(f"Errore: {e}")
+
 
