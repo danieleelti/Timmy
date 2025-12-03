@@ -40,7 +40,6 @@ system_instruction = """
 4.  **CHIUSURA (Call to Action):**
     Concludi sempre invitando a contattarci: *"Volete approfondire uno di questi o preferite altre idee?"*
 """
----
 
 ###  [DATABASE FORMAT - NO PREZZI]
 database_attivita = 
@@ -1249,5 +1248,6 @@ if prompt := st.chat_input("Scrivi qui la richiesta..."):
             except Exception as e:
 
                 st.error(f"Errore: {e}")
+
 
 
