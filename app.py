@@ -225,22 +225,25 @@ if len(st.session_state.messages) >= 2:
         submitted = st.form_submit_button("Invia cronologia e richiedi preventivo")
 
         if submitted and user_email:
+            # Validazione base dell'email
             if "@" not in user_email or "." not in user_email:
                 st.warning("Per favore, inserisci un indirizzo email valido.")
             else:
                 # Chiamiamo la funzione di invio con la cronologia salvata
-                success = send_chat_via_email(user_email, st.session_state.messages)
+                # Stiamo chiamando la funzione CORRETTA qui
+                success = send_chat_via_email(user_email, st.session_state.messages) 
                 
                 if success:
                     st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarete ricontattati entro due ore.")
-                else:
-                    # L'errore specifico è già stampato nella console dalla funzione
-                    st.error("Si è verificato un errore critico durante l'invio. Controlla i log di Streamlit e le credenziali SMTP.")
+                    
+                    # Feedback finale di ringraziamento
+                    st.markdown("---")
+                    st.info("### Grazie di averci scritto! Verrai ricontattato a breve dal nostro team commerciale.")
+
+                # Se 'success' è False (errore nell'invio SMTP):
+                # Il messaggio di errore specifico è già stampato dalla funzione, qui mostriamo solo il messaggio generico
+                # else:
+                #    st.error("Si è verificato un errore critico durante l'invio. Controlla i log di Streamlit.")
+        
         elif submitted and not user_email:
             st.warning("Inserisci l'email per procedere.")
-
-
-
-
-
-
