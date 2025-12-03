@@ -48,6 +48,7 @@ else:
     st.stop()
 
 # --- FUNZIONE DI INVIO EMAIL (STRUTTURA CORRETTA) ---
+# --- FUNZIONE DI INVIO EMAIL (FINALE) ---
 def send_chat_via_email(recipient_email, chat_history):
     # Dati presi da st.secrets
     try:
@@ -56,20 +57,21 @@ def send_chat_via_email(recipient_email, chat_history):
         smtp_server = st.secrets["smtp"]["server"]
         smtp_port = st.secrets["smtp"]["port"]
     except KeyError:
-        st.error("Errore: Credenziali SMTP (sender_email, server, etc.) mancanti nel file secrets.toml.")
-        return False # <-- La funzione termina qui in caso di errore
+        st.error("Errore: Credenziali SMTP (server, port, etc.) mancanti in Streamlit Secrets.")
+        return False
 
     # Definiamo la lista dei destinatari finali
     destinatari = [recipient_email, EMAIL_COMMERCIALE]
     
     try:
-        # Crea il corpo e configura l'email (msg['To'] e msg['Cc'] rimangono uguali)
+        # Crea il corpo dell'email
         body = "Ecco la cronologia della conversazione con Timmy AI:\n\n"
         for message in chat_history:
             role = "UTENTE" if message["role"] == "user" else "TIMMY AI"
             content = message['content'].replace('**', '').replace('###', '').replace('\n', '\n')
             body += f"--- {role} ---\n{content}\n\n"
 
+        # Configura l'email
         msg = MIMEMultipart()
         msg['From'] = sender_email
         msg['To'] = recipient_email
@@ -83,12 +85,12 @@ def send_chat_via_email(recipient_email, chat_history):
             server.login(sender_email, sender_password)
             server.sendmail(sender_email, destinatari, msg.as_string()) 
         
-        return True # <-- La funzione termina qui in caso di successo
+        return True
 
     except Exception as e:
-        # Se l'invio fallisce (es. porta sbagliata o password errata)
-        st.error(f"Errore di invio SMTP: {e}. Controlla la porta e la password.")
-        return False # <-- La funzione termina qui in caso di errore SMTP
+        # Errore di invio effettivo (password sbagliata, porta bloccata, ecc.)
+        st.error(f"Errore di invio SMTP: {e}. Controlla la password, la porta ({smtp_port}) e il server.")
+        return False
 
 # --- FINE FUNZIONE EMAIL ---
 
@@ -247,3 +249,4 @@ if len(st.session_state.messages) >= 2:
         
         elif submitted and not user_email:
             st.warning("Inserisci l'email per procedere.")
+
