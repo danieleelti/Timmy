@@ -180,53 +180,49 @@ for message in st.session_state.messages:
 # --- ZONA FISSA IN BASSO (Contiene Form e Input Chat) ---
 # ----------------------------------------------------------------------
 
-# Creiamo un contenitore che si posizionerà dopo la cronologia
-bottom_container = st.container()
+# Torniamo alla struttura più stabile: il Form viene renderizzato per primo 
+# nella zona interattiva, seguito dall'input chat.
 
-with bottom_container:
-    # Condizione: mostriamo il form solo se ci sono almeno due messaggi
-    if len(st.session_state.messages) >= 2:
+# Condizione: mostriamo il form solo se ci sono almeno due messaggi
+if len(st.session_state.messages) >= 2:
+    
+    # Linea di separazione per estetica
+    st.divider() 
+
+    # IL FORM DEVE CONTENERE TUTTA LA SUA LOGICA
+    with st.form("email_form", clear_on_submit=True):
+        st.markdown("### 💌 Richiedi una Proposta Commerciale")
+        st.markdown("Inserisci la tua email per ricevere subito il riepilogo della consulenza e una proposta ad-hoc entro due ore.")
         
-        # Linea di separazione per estetica
-        st.divider() 
+        user_email = st.text_input("La tua email:", key="user_email_input")
+        
+        submitted = st.form_submit_button("Invia cronologia e richiedi preventivo")
+        
+        # LOGICA CORRETTA: TUTTO IL CONTROLLO 'if submitted' è all'interno del form
+        if submitted and user_email:
+            # Validazione base dell'email
+            if "@" not in user_email or "." not in user_email:
+                st.warning("Per favore, inserisci un indirizzo email valido.")
+            else:
+                success = send_chat_via_email(user_email, st.session_state.messages)
 
-        # IL FORM DEVE CONTENERE TUTTA LA SUA LOGICA
-        with st.form("email_form", clear_on_submit=True):
-            st.markdown("### 💌 Richiedi una Proposta Commerciale")
-            st.markdown("Inserisci la tua email per ricevere subito il riepilogo della consulenza e una proposta ad-hoc entro due ore.")
+                if success:
+                    st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarai ricontattato prestissimo.")
+                    st.markdown("---")
+                    st.info("👉 Grazie di averci scritto! Verrai ricontattato a breve dal nostro team commerciale.")
             
-            user_email = st.text_input("La tua email:", key="user_email_input")
-            
-            submitted = st.form_submit_button("Invia cronologia e richiedi preventivo")
-            
-            # LOGICA CORRETTA: TUTTO IL CONTROLLO 'if submitted' è all'interno del form
-            if submitted and user_email:
-                # Validazione base dell'email
-                if "@" not in user_email or "." not in user_email:
-                    st.warning("Per favore, inserisci un indirizzo email valido.")
-                else:
-                    success = send_chat_via_email(user_email, st.session_state.messages)
+        elif submitted and not user_email:
+            st.warning("Inserisci l'email per procedere.")
 
-                    if success:
-                        st.success(f"✅ Richiesta inviata! Il riepilogo è stato spedito a {user_email}. Sarai ricontattato prestissimo.")
-                        st.markdown("---")
-                        st.info("👉 Grazie di averci scritto! Verrai ricontattato a breve dal nostro team commerciale.")
-                
-            elif submitted and not user_email:
-                st.warning("Inserisci l'email per procedere.")
-
-    # --- INPUT PROMPT (DEVE ESSERE L'ULTIMO NEL CONTENITORE) ---
-    # Posizionando il st.chat_input all'interno di un contenitore che è l'ultimo elemento della pagina,
-    # Streamlit dovrebbe renderlo fisso in fondo.
-
-    if prompt := st.chat_input("Scrivi qui la richiesta..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        # La logica di generazione della risposta deve essere fuori dal contenitore/form per funzionare
-        st.rerun() 
-        # Usiamo st.rerun() per uscire dal blocco di generazione e far ricaricare lo stato (necessario in questa struttura)
+# --- INPUT PROMPT (DEVE ESSERE L'ULTIMO PER RESTARE FISSO IN FONDO) ---
+# Se si torna all'ordine precedente, il form scorre, ma almeno l'input chat rimane fisso.
+if prompt := st.chat_input("Scrivi qui la richiesta..."):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    # La logica di generazione della risposta deve essere fuori per funzionare correttamente
+    st.rerun() 
 
 # ----------------------------------------------------------------------
-# --- LOGICA DI RISPOSTA GEMINI (DEVE ESSERE ESEGUITA DURANTE IL RERUN) ---
+# --- LOGICA DI RISPOSTA GEMINI (CON SPINNER DI ATTESA) ---
 # ----------------------------------------------------------------------
 
 # Controlliamo l'ultimo messaggio inviato per la logica di generazione
@@ -238,30 +234,40 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         st.session_state.messages = []
         st.rerun()
 
-    # RISPOSTA DEL MODELLO
-    with st.chat_message("model", avatar=logo_url):
-        try:
-            history_gemini = []
-            # Tutta la cronologia tranne l'ultimo (il prompt corrente)
-            for m in st.session_state.messages[:-1]: 
-                history_gemini.append({"role": m["role"], "parts": [m["content"]]})
-            
-            chat = model.start_chat(history=history_gemini)
-            
-            response = chat.send_message(current_prompt, stream=True)
-            
-            full_response = ""
-            message_placeholder = st.empty()
-            
-            for chunk in response:
-                if chunk.text:
-                    full_response += chunk.text
-                    message_placeholder.markdown(full_response + "▌")
-            
-            message_placeholder.markdown(full_response)
-            
-            # Aggiungiamo la risposta completa solo alla fine
-            st.session_state.messages.append({"role": "model", "content": full_response})
-            
-        except Exception as e:
-            st.error(f"Errore: {e}")
+    # ⭐ AGGIUNGIAMO LO SPINNER DI ATTESA qui
+    with st.status("🧠 Timmy AI sta elaborando la tua richiesta...", expanded=True) as status:
+        
+        # RISPOSTA DEL MODELLO
+        with st.chat_message("model", avatar=logo_url):
+            try:
+                history_gemini = []
+                # Tutta la cronologia tranne l'ultimo (il prompt corrente)
+                for m in st.session_state.messages[:-1]: 
+                    history_gemini.append({"role": m["role"], "parts": [m["content"]]})
+                
+                status.update(label="💬 Connessione al modello Gemini stabilita...")
+                chat = model.start_chat(history=history_gemini)
+                
+                status.update(label="✍️ Generazione della risposta in corso...")
+                response = chat.send_message(current_prompt, stream=True)
+                
+                full_response = ""
+                message_placeholder = st.empty()
+                
+                for chunk in response:
+                    if chunk.text:
+                        full_response += chunk.text
+                        message_placeholder.markdown(full_response + "▌")
+                
+                message_placeholder.markdown(full_response)
+                
+                # Aggiungiamo la risposta completa solo alla fine
+                st.session_state.messages.append({"role": "model", "content": full_response})
+                
+                # Chiudiamo lo spinner una volta completato
+                status.update(label="✅ Risposta completa!", state="complete", expanded=False)
+                
+            except Exception as e:
+                # Se c'è un errore, mostriamolo e chiudiamo lo stato
+                status.update(label="❌ Errore durante la generazione della risposta.", state="error", expanded=True)
+                st.error(f"Errore: {e}")
