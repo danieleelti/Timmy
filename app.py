@@ -50,17 +50,19 @@ else:
 # --- FUNZIONE DI INVIO EMAIL (FIXED) ---
 
 def send_chat_via_email(recipient_email, chat_history):
-    # Dati presi da st.secrets
     try:
         sender_email = st.secrets["smtp"]["sender_email"]
         sender_password = st.secrets["smtp"]["sender_password"]
-        smtp_server = st.secrets["smtp"]["host"] # Ho corretto 'server' in 'host' per consistenza con l'immagine secrets.toml
-        smtp_port = int(st.secrets["smtp"]["port"]) # Conversione a intero
+        
+        # USARE "host"
+        smtp_server = st.secrets["smtp"]["host"] 
+        
+        # USARE "port"
+        smtp_port = int(st.secrets["smtp"]["port"]) 
+        
     except KeyError as e:
+        # Questo errore si verifica se manca una delle chiavi sopra
         st.error(f"❌ Errore: Credenziale SMTP mancante in Streamlit Secrets: {e}.")
-        return False
-    except ValueError:
-        st.error("❌ Errore: La porta SMTP (in secrets.toml) deve essere un numero intero (es. 465).")
         return False
 
     # Definiamo la lista dei destinatari finali
@@ -264,6 +266,7 @@ if len(st.session_state.messages) >= 2:
         
         elif submitted and not user_email:
             st.warning("Inserisci l'email per procedere.")
+
 
 
 
