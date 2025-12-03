@@ -3,40 +3,41 @@ import json
 import os
 
 def carica_database():
-    # Il nome esatto del tuo file su GitHub
+    # Nome del file (assicurati che su GitHub sia caricato nella stessa cartella!)
     nome_file = 'MasterTimmy.csv'
     
     lista_prodotti = []
     
-    # 1. Controllo se il file esiste (per evitare crash brutti)
+    # 1. Verifica esistenza file
     if not os.path.exists(nome_file):
-        messaggio_errore = (
-            f"ATTENZIONE: Il file '{nome_file}' non è stato trovato nella cartella principale. "
-            "Caricalo su GitHub accanto ad app.py."
-        )
-        return messaggio_errore
+        # Fallback: prova a cercarlo tutto minuscolo se non lo trova
+        if os.path.exists(nome_file.lower()):
+            nome_file = nome_file.lower()
+        else:
+            return json.dumps([{"nome": "ERRORE", "descrizione": "File CSV non trovato su GitHub."}])
 
     try:
-        # 2. Apertura e lettura del CSV
-        with open(nome_file, mode='r', encoding='utf-8') as file:
-            # DictReader usa la prima riga (intestazioni) come chiavi
-            # Assicurati che il tuo CSV abbia le intestazioni: nome, format, logistica, ecc.
-            reader = csv.DictReader(file)
+        # 2. Lettura intelligente (Rileva automaticamente il separatore)
+        with open(nome_file, mode='r', encoding='utf-8', errors='replace') as file:
+            # Leggiamo la prima riga per capire se usa , o ;
+            prima_riga = file.readline()
+            file.seek(0) # Torniamo all'inizio
+            
+            separatore = ';' if ';' in prima_riga else ','
+            
+            reader = csv.DictReader(file, delimiter=separatore)
             
             for row in reader:
-                # Pulizia opzionale: rimuove righe vuote se ce ne sono
-                if row.get('nome'): 
-                    lista_prodotti.append(row)
+                # Aggiungiamo solo se c'è almeno il nome del format
+                if row.get('nome') or row.get('Nome') or row.get('NOME'):
+                    # Normalizziamo le chiavi (tutto minuscolo) per sicurezza
+                    row_clean = {k.lower(): v for k, v in row.items() if k}
+                    lista_prodotti.append(row_clean)
         
-        # 3. Conversione in testo JSON per l'AI
-        # ensure_ascii=False serve per mantenere accenti e caratteri speciali italiani
-        database_stringa = json.dumps(lista_prodotti, indent=2, ensure_ascii=False)
-        return database_stringa
+        return json.dumps(lista_prodotti, indent=2, ensure_ascii=False)
 
     except Exception as e:
-        return f"ERRORE CRITICO nella lettura di {nome_file}: {e}"
+        return json.dumps([{"nome": "ERRORE LETTURA", "descrizione": str(e)}])
 
-# --- ESECUZIONE ---
-# Quando app.py fa "from format import database_attivita",
-# questa funzione parte in automatico e carica i dati aggiornati.
+# ESECUZIONE
 database_attivita = carica_database()
